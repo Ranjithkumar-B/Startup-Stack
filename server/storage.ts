@@ -27,6 +27,10 @@ export interface IStorage {
   getCourseEvents(courseId: number): Promise<EngagementEvent[]>;
   getAllEvents(): Promise<EngagementEvent[]>;
   
+  // Instructor student management
+  getStudentsByInstructor(instructorId: number): Promise<any[]>;
+  removeStudentFromInstructor(studentId: number): Promise<void>;
+  
   getPlatformStats(): Promise<any>;
 }
 
@@ -103,6 +107,65 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(engagementEvents).orderBy(desc(engagementEvents.timestamp));
   }
   
+  async getStudentsByInstructor(instructorId: number): Promise<any[]> {
+    const instructorCourses = await db.select().from(courses).where(eq(courses.instructorId, instructorId));
+    const courseIds = instructorCourses.map(c => c.id);
+    
+    if (courseIds.length === 0) return [];
+    
+    const studentList = await db.select({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      role: users.role,
+    })
+    .from(enrollments)
+    .innerJoin(users, eq(enrollments.studentId, users.id))
+    .where(
+      sql`${enrollments.courseId} = ANY(${courseIds}::int[])`
+    );
+    
+    const uniqueStudents = studentList.reduce((acc: any[], student: any) => {
+      if (!acc.find(s => s.id === student.id)) {
+        acc.push(student);
+      }
+      return acc;
+    }, []);
+
+    // Attach engagement scores
+    const studentsWithScore = await Promise.all(
+      uniqueStudents.map(async (student) => {
+        const events = await this.getStudentEvents(student.id);
+        const engagementScore = this.calculateEngagementScore(events);
+        return { ...student, engagementScore };
+      })
+    );
+
+    return studentsWithScore;
+  }
+
+  async removeStudentFromInstructor(studentId: number): Promise<void> {
+    await db.delete(enrollments).where(eq(enrollments.studentId, studentId));
+  }
+
+  private calculateEngagementScore(events: EngagementEvent[]): number {
+    if (events.length === 0) return 0;
+    
+    let score = 0;
+    const eventCounts: { [key: string]: number } = {};
+    
+    events.forEach(event => {
+      eventCounts[event.eventType] = (eventCounts[event.eventType] || 0) + 1;
+    });
+    
+    score += (eventCounts['login'] || 0) * 2;
+    score += (eventCounts['video_watch'] || 0) * 3;
+    score += (eventCounts['quiz_submit'] || 0) * 10;
+    score += (eventCounts['assignment_submit'] || 0) * 8;
+    
+    return Math.min(Math.round(score / 10), 100);
+  }
+
   async getPlatformStats(): Promise<any> {
     const [userCount] = await db.select({ count: sql<number>`count(*)` }).from(users);
     const [courseCount] = await db.select({ count: sql<number>`count(*)` }).from(courses);

@@ -176,6 +176,65 @@ export async function registerRoutes(
     }
   });
 
+  // Instructor student management
+  app.get('/api/instructor/students', requireAuth, async (req, res) => {
+    if (req.user.role !== 'instructor') {
+      return res.status(403).json({ message: "Only instructors can manage students" });
+    }
+    try {
+      const students = await storage.getStudentsByInstructor(req.user.id);
+      res.json(students);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to load students" });
+    }
+  });
+
+  app.post('/api/instructor/add-student', requireAuth, async (req, res) => {
+    if (req.user.role !== 'instructor') {
+      return res.status(403).json({ message: "Only instructors can add students" });
+    }
+    try {
+      const { email, name } = req.body;
+      if (!email || !name) {
+        return res.status(400).json({ message: "Email and name are required" });
+      }
+
+      let student = await storage.getUserByEmail(email);
+      if (!student) {
+        const defaultPass = await bcrypt.hash("DefaultPass123", 10);
+        student = await storage.createUser({ 
+          name, 
+          email, 
+          password: "DefaultPass123",
+          role: "student", 
+          passwordHash: defaultPass 
+        });
+      }
+
+      const courses = await storage.getCoursesByInstructor(req.user.id);
+      if (courses.length > 0) {
+        await storage.enrollStudent(student.id, courses[0].id);
+      }
+
+      res.status(201).json({ message: "Student added successfully", student: { id: student.id, name: student.name, email: student.email } });
+    } catch (err) {
+      res.status(500).json({ message: "Failed to add student" });
+    }
+  });
+
+  app.delete('/api/instructor/students/:id', requireAuth, async (req, res) => {
+    if (req.user.role !== 'instructor') {
+      return res.status(403).json({ message: "Only instructors can remove students" });
+    }
+    try {
+      const studentId = Number(req.params.id);
+      await storage.removeStudentFromInstructor(studentId);
+      res.json({ message: "Student removed successfully" });
+    } catch (err) {
+      res.status(500).json({ message: "Failed to remove student" });
+    }
+  });
+
   // Seed Data
   async function seed() {
     const allUsers = await db.select().from(users);

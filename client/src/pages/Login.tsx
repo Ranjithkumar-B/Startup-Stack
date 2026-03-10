@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
-import { BookOpen, ArrowRight, Loader2 } from "lucide-react";
+import { BookOpen, ArrowRight, Loader2, Users, GraduationCap } from "lucide-react";
 
 export default function Login() {
   const [_, setLocation] = useLocation();
   const { login, isLoggingIn } = useAuth();
+  const [userType, setUserType] = useState<"student" | "teacher" | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -20,6 +21,56 @@ export default function Login() {
       setError(err.message || "Invalid credentials");
     }
   };
+
+  if (!userType) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
+        <div className="w-full max-w-5xl">
+          <div className="mb-12 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 mx-auto">
+              <BookOpen className="w-8 h-8 text-primary" />
+            </div>
+            <h1 className="text-4xl font-display font-bold text-foreground mb-3">
+              Course Engagement Platform
+            </h1>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Monitor student participation and drive academic success
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-2xl mx-auto">
+            {/* Student Login */}
+            <button
+              onClick={() => setUserType("student")}
+              className="p-8 bg-card rounded-2xl border-2 border-border hover:border-primary hover:shadow-lg hover:shadow-primary/20 transition-all active:translate-y-1 group cursor-pointer"
+            >
+              <div className="w-12 h-12 rounded-xl bg-secondary/20 flex items-center justify-center mb-4 group-hover:bg-secondary/40 transition-colors">
+                <GraduationCap className="w-7 h-7 text-secondary" />
+              </div>
+              <h2 className="text-2xl font-display font-bold text-foreground mb-2">Login as Student</h2>
+              <p className="text-muted-foreground text-sm">
+                Access your courses, track progress, and view your engagement analytics
+              </p>
+            </button>
+
+            {/* Teacher Login */}
+            <button
+              onClick={() => setUserType("teacher")}
+              className="p-8 bg-card rounded-2xl border-2 border-border hover:border-primary hover:shadow-lg hover:shadow-primary/20 transition-all active:translate-y-1 group cursor-pointer"
+            >
+              <div className="w-12 h-12 rounded-xl bg-accent/20 flex items-center justify-center mb-4 group-hover:bg-accent/40 transition-colors">
+                <Users className="w-7 h-7 text-accent" />
+              </div>
+              <h2 className="text-2xl font-display font-bold text-foreground mb-2">Login as Teacher</h2>
+              <p className="text-muted-foreground text-sm">
+                Manage your courses, monitor students, and track class engagement
+              </p>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
@@ -55,8 +106,17 @@ export default function Login() {
         {/* Right Side - Form */}
         <div className="p-8 md:p-12 flex flex-col justify-center">
           <div className="max-w-md w-full mx-auto">
+            <button
+              onClick={() => setUserType(null)}
+              className="mb-6 px-3 py-1.5 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
+            >
+              ← Back to role selection
+            </button>
+
             <div className="mb-10 text-center md:text-left">
-              <h2 className="text-3xl font-display font-bold text-foreground mb-2">Welcome back</h2>
+              <h2 className="text-3xl font-display font-bold text-foreground mb-2">
+                Welcome back{userType === "teacher" ? ", Teacher" : ""}
+              </h2>
               <p className="text-muted-foreground">Sign in to access your dashboard</p>
             </div>
 

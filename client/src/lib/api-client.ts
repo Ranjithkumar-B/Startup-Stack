@@ -26,7 +26,6 @@ export async function fetchApi(url: string, options: RequestInit = {}) {
   
   if (res.status === 401) {
     clearAuthToken();
-    // Redirect to login if unauthenticated on protected routes could happen here
   }
 
   if (!res.ok) {
@@ -37,11 +36,31 @@ export async function fetchApi(url: string, options: RequestInit = {}) {
     } catch (e) {
       // Ignore parse error
     }
-    throw new Error(errorMessage);
+    const error: any = new Error(errorMessage);
+    error.response = { data: { message: errorMessage }, status: res.status };
+    throw error;
   }
 
-  // Handle 204 No Content
   if (res.status === 204) return null;
   
   return res.json();
 }
+
+export const apiClient = {
+  get: async (url: string) => {
+    const response = await fetchApi(url, { method: 'GET' });
+    return { data: response };
+  },
+  post: async (url: string, data: any) => {
+    const response = await fetchApi(url, { 
+      method: 'POST',
+      body: JSON.stringify(data),
+      headers: { 'Content-Type': 'application/json' }
+    });
+    return { data: response };
+  },
+  delete: async (url: string) => {
+    const response = await fetchApi(url, { method: 'DELETE' });
+    return { data: response };
+  }
+};
