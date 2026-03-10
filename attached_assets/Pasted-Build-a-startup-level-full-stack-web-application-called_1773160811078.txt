@@ -1,0 +1,194 @@
+Build a **startup-level full-stack web application called "Student Course Engagement Monitoring Platform"**.
+
+TECH STACK
+Frontend: React.js (Vite) + Material UI dashboard
+Backend: Node.js + Express.js REST API
+Database: MySQL / PostgreSQL
+Authentication: JWT + bcrypt
+Charts: Chart.js
+Realtime tracking: Socket.io
+
+The application should follow a **professional scalable folder structure**.
+
+---
+
+CORE FEATURES
+
+1. Role Based Authentication
+   Users can register and login.
+   Roles include:
+
+* Student
+* Instructor
+* Admin
+
+Use JWT authentication and hashed passwords.
+
+---
+
+2. Dashboards
+
+Student Dashboard:
+
+* View enrolled courses
+* Track engagement score
+* See weekly study time
+* View course progress
+* Activity history
+
+Instructor Dashboard:
+
+* View courses they teach
+* Monitor student engagement
+* List students with low engagement
+* View analytics charts (activity trends)
+
+Admin Dashboard:
+
+* Total users
+* Total courses
+* Platform engagement statistics
+* Student activity distribution
+* Manage users and courses
+
+---
+
+3. Engagement Tracking System
+
+Track events such as:
+
+* video_watch
+* quiz_submit
+* course_open
+* assignment_submit
+* login
+
+Store these in a database table called `engagement_events`.
+
+---
+
+4. Engagement Score Engine
+
+Calculate engagement score using:
+
+score =
+(login_count * 2)
+
+* (video_minutes / 5)
+* (quiz_completed * 10)
+* (assignment_completed * 8)
+
+Display the score on dashboards.
+
+---
+
+5. Database Tables
+
+users
+id, name, email, password_hash, role, created_at
+
+courses
+course_id, title, description, instructor_id
+
+enrollments
+id, student_id, course_id, progress
+
+engagement_events
+event_id, student_id, course_id, event_type, duration, timestamp
+
+---
+
+6. Backend API Endpoints
+
+POST /auth/register
+POST /auth/login
+
+GET /courses
+POST /courses
+
+POST /engagement/log
+GET /engagement/student/:id
+GET /analytics/course/:id
+
+---
+
+7. Frontend Pages
+
+Login Page
+Register Page
+
+Student Dashboard
+Instructor Dashboard
+Admin Dashboard
+
+Course Page
+Analytics Page
+
+---
+
+8. UI Requirements
+
+Use Material UI dashboard layout.
+
+Include:
+
+* Sidebar navigation
+* Top navbar
+* Charts for engagement analytics
+* Clean responsive design
+
+---
+
+9. Realtime Features
+
+Use Socket.io to track student activity in realtime.
+
+Example:
+When a student opens a course, emit an event:
+"student_active"
+
+Instructor dashboard should update live.
+
+---
+
+10. Project Folder Structure
+
+frontend
+src
+components
+pages
+services
+context
+
+backend
+src
+routes
+controllers
+middleware
+services
+config
+
+---
+
+11. Deployment Ready
+
+The project should be deployable on:
+
+Frontend → Vercel
+Backend → Render / Railway
+Database → MySQL or PostgreSQL
+
+---
+
+Generate:
+
+1. Full backend code
+2. Full frontend code
+3. SQL schema
+4. API integration
+5. Example dashboards with charts
+
+Ensure the project runs locally with:
+
+npm install
+npm run dev
