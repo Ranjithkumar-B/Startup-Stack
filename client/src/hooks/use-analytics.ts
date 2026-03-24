@@ -23,3 +23,12 @@ export function useCourseAnalytics(courseId: number) {
     enabled: !!courseId,
   });
 }
+export function useLeaderboard() {
+  return useQuery({
+    queryKey: [api.analytics.leaderboard.path],
+    queryFn: async () => {
+      const data = await fetchApi(api.analytics.leaderboard.path);
+      return data;
+    },
+  });
+}

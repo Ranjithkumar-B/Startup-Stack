@@ -5,9 +5,8 @@
 @tailwind utilities;
 
 :root {
-  --font-sans: 'DM Sans', sans-serif;
-  --font-display: 'Syne', sans-serif;
-
+ --font-sans: 'Poppins', sans-serif;
+--font-display: 'Poppins', sans-serif;
   /* Material UI inspired palette but modernized */
   --background: 210 20% 98%;
   --foreground: 222 47% 11%;

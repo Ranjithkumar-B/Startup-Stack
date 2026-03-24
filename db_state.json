@@ -1,0 +1,218 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "name": "Admin User",
+      "email": "admin@platform.com",
+      "role": "admin"
+    },
+    {
+      "id": 2,
+      "name": "Instructor Bob",
+      "email": "instructor@platform.com",
+      "role": "instructor"
+    },
+    {
+      "id": 3,
+      "name": "Student Alice",
+      "email": "student@platform.com",
+      "role": "student"
+    },
+    {
+      "id": 4,
+      "name": "Inst1",
+      "email": "inst1@example.com",
+      "role": "instructor"
+    },
+    {
+      "id": 5,
+      "name": "InstFix",
+      "email": "instfix@example.com",
+      "role": "instructor"
+    },
+    {
+      "id": 6,
+      "name": "ProdInst",
+      "email": "prodinst@example.com",
+      "role": "instructor"
+    },
+    {
+      "id": 7,
+      "name": "tiger",
+      "email": "t@t.com",
+      "role": "instructor"
+    },
+    {
+      "id": 8,
+      "name": "akhil",
+      "email": "sanjay@25t.com",
+      "role": "student"
+    },
+    {
+      "id": 9,
+      "name": "ranjith",
+      "email": "ranjith@gmail.com",
+      "role": "student"
+    },
+    {
+      "id": 10,
+      "name": "user",
+      "email": "s@t.com",
+      "role": "student"
+    },
+    {
+      "id": 11,
+      "name": "ranjith",
+      "email": "ranjith@test.com",
+      "role": "student"
+    },
+    {
+      "id": 12,
+      "name": "Tamilselvan",
+      "email": "tamil@test.com",
+      "role": "instructor"
+    },
+    {
+      "id": 13,
+      "name": "Tamilselvan",
+      "email": "tamil2@test.com",
+      "role": "student"
+    },
+    {
+      "id": 14,
+      "name": "Ranjith",
+      "email": "ranjith@gamil.com",
+      "role": "student"
+    },
+    {
+      "id": 15,
+      "name": "Tamilselvan",
+      "email": "tamil@gamil.com",
+      "role": "instructor"
+    },
+    {
+      "id": 16,
+      "name": "tamil",
+      "email": "tamil@gmail.com",
+      "role": "student"
+    },
+    {
+      "id": 17,
+      "name": "Rokith",
+      "email": "rokith@test.com",
+      "role": "student"
+    },
+    {
+      "id": 18,
+      "name": "sanjay",
+      "email": "sanjay@test.com",
+      "role": "student"
+    },
+    {
+      "id": 19,
+      "name": "Dharun",
+      "email": "dharun@test.com",
+      "role": "student"
+    },
+    {
+      "id": 20,
+      "name": "Sanjeev",
+      "email": "sanjeev@test.com",
+      "role": "student"
+    },
+    {
+      "id": 21,
+      "name": "Aslam",
+      "email": "aslam@gmail.com",
+      "role": "student"
+    },
+    {
+      "id": 22,
+      "name": "Aslam",
+      "email": "aslam@test.com",
+      "role": "student"
+    }
+  ],
+  "courses": [
+    {
+      "course_id": 1,
+      "title": "Introduction to React",
+      "description": "Learn React from scratch",
+      "instructor_id": 2
+    },
+    {
+      "course_id": 2,
+      "title": "Advanced Node.js",
+      "description": "Master backend development",
+      "instructor_id": 2
+    },
+    {
+      "course_id": 3,
+      "title": "communication",
+      "description": "language",
+      "instructor_id": 1
+    },
+    {
+      "course_id": 4,
+      "title": "Python",
+      "description": "programming",
+      "instructor_id": 12
+    },
+    {
+      "course_id": 5,
+      "title": "JAVA",
+      "description": "OOPS",
+      "instructor_id": 12
+    },
+    {
+      "course_id": 6,
+      "title": "HTML/CSS",
+      "description": "Frontend",
+      "instructor_id": 12
+    }
+  ],
+  "enrollments": [
+    {
+      "id": 1,
+      "student_id": 3,
+      "course_id": 1,
+      "progress": 0
+    },
+    {
+      "id": 2,
+      "student_id": 11,
+      "course_id": 4,
+      "progress": 0
+    },
+    {
+      "id": 3,
+      "student_id": 13,
+      "course_id": 4,
+      "progress": 0
+    },
+    {
+      "id": 4,
+      "student_id": 21,
+      "course_id": 4,
+      "progress": 0
+    },
+    {
+      "id": 5,
+      "student_id": 11,
+      "course_id": 6,
+      "progress": 0
+    },
+    {
+      "id": 6,
+      "student_id": 13,
+      "course_id": 6,
+      "progress": 0
+    },
+    {
+      "id": 7,
+      "student_id": 21,
+      "course_id": 6,
+      "progress": 0
+    }
+  ]
+}

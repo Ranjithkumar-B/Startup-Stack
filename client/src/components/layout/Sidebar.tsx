@@ -6,7 +6,9 @@ import {
   Users, 
   Settings, 
   Activity,
-  LogOut
+  Trophy,
+  LogOut,
+  ClipboardList
 } from "lucide-react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -24,6 +26,8 @@ export function Sidebar() {
   const links = [
     { href: `/${user.role}`, label: "Dashboard", icon: LayoutDashboard },
     { href: "/courses", label: "Courses", icon: BookOpen },
+    { href: "/tasks", label: "Tasks", icon: ClipboardList },
+    { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
     ...(user.role === "instructor" || user.role === "admin" 
       ? [{ href: "/students", label: "Students", icon: Users }] 
       : []),
@@ -39,7 +43,7 @@ export function Sidebar() {
           <BookOpen className="w-6 h-6 text-white" />
         </div>
         <h1 className="font-display font-bold text-xl tracking-tight text-card-foreground">
-          Engage<span className="text-primary">Edu</span>
+        Stud<span className="text-primary">Engagement</span>
         </h1>
       </div>
 

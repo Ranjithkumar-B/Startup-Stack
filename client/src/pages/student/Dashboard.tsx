@@ -5,17 +5,6 @@ import { StatCard } from "@/components/ui/StatCard";
 import { Trophy, Clock, BookOpen, Flame } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-// Dummy data for visualization if API is missing
-const mockChartData = [
-  { name: 'Mon', score: 45 },
-  { name: 'Tue', score: 52 },
-  { name: 'Wed', score: 38 },
-  { name: 'Thu', score: 65 },
-  { name: 'Fri', score: 72 },
-  { name: 'Sat', score: 68 },
-  { name: 'Sun', score: 85 },
-];
-
 export default function StudentDashboard() {
   const { user } = useAuth();
   const { data: engagement, isLoading } = useStudentEngagement(user?.id || 0);
@@ -30,18 +19,23 @@ export default function StudentDashboard() {
     );
   }
 
-  // Fallback to mock data
-  const score = engagement?.score || 85;
-  const hours = engagement?.hours || 12.5;
-  const courses = engagement?.courses || 4;
-  const streak = engagement?.streak || 7;
-  const chartData = engagement?.history || mockChartData;
+  // Use real data
+  const score = engagement?.score || 0;
+  const hours = engagement?.hours || 0;
+  const courses = engagement?.courses || 0;
+  const streak = engagement?.streak || 0;
+  const chartData = engagement?.history || [];
 
   return (
     <DashboardLayout>
       <div className="mb-8">
         <h1 className="text-3xl font-display font-bold text-foreground mb-2">Welcome back, {user?.name.split(' ')[0]} 👋</h1>
-        <p className="text-muted-foreground text-lg">Here's your engagement overview for this week.</p>
+        <p className="text-muted-foreground text-lg mb-1">Here's your engagement overview for this week.</p>
+        {engagement?.instructorName && (
+           <p className="text-sm font-semibold text-primary/80 uppercase tracking-widest mt-2 bg-primary/10 inline-block px-3 py-1 rounded-full border border-primary/20">
+             Instructor: {engagement.instructorName}
+           </p>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -107,22 +101,25 @@ export default function StudentDashboard() {
         <div className="bg-card rounded-2xl p-6 mui-shadow border border-border">
           <h2 className="text-xl font-display font-bold mb-6">Recent Activity</h2>
           <div className="space-y-6 relative before:absolute before:inset-y-0 before:left-4 before:w-px before:bg-border">
-            {[
-              { title: "Watched 'Intro to React'", time: "2h ago", type: "video" },
-              { title: "Submitted Assignment 3", time: "5h ago", type: "quiz" },
-              { title: "Joined Discussion Forum", time: "1d ago", type: "forum" },
-              { title: "Completed Module 2", time: "2d ago", type: "course" }
-            ].map((activity, i) => (
-              <div key={i} className="flex gap-4 relative">
-                <div className="w-8 h-8 rounded-full bg-primary/10 border-2 border-card flex items-center justify-center shrink-0 z-10">
-                  <div className="w-2.5 h-2.5 rounded-full bg-primary"></div>
+            {(engagement?.recentEvents || []).length > 0 ? (
+              engagement.recentEvents.map((activity: any, i: number) => (
+                <div key={i} className="flex gap-4 relative">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 border-2 border-card flex items-center justify-center shrink-0 z-10">
+                    <div className="w-2.5 h-2.5 rounded-full bg-primary"></div>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm text-foreground">
+                      {activity.eventType.replace('_', ' ')} (Course {activity.courseId})
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {new Date(activity.timestamp).toLocaleString()}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-semibold text-sm text-foreground">{activity.title}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{activity.time}</p>
-                </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground pl-12 pb-4">No recent activity found.</p>
+            )}
           </div>
           <button className="w-full mt-6 py-2.5 text-sm font-semibold text-primary bg-primary/5 hover:bg-primary/10 rounded-xl transition-colors">
             View All History

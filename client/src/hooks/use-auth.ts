@@ -30,8 +30,8 @@ export function useAuth() {
       setAuthToken(parsed.token);
       return parsed;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [api.auth.me.path] });
+    onSuccess: (data) => {
+      queryClient.setQueryData([api.auth.me.path], data.user);
     },
   });
 
@@ -45,8 +45,8 @@ export function useAuth() {
       setAuthToken(parsed.token);
       return parsed;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [api.auth.me.path] });
+    onSuccess: (data) => {
+      queryClient.setQueryData([api.auth.me.path], data.user);
     },
   });
 

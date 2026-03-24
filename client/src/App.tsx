@@ -13,6 +13,14 @@ import StudentDashboard from "@/pages/student/Dashboard";
 import InstructorDashboard from "@/pages/instructor/Dashboard";
 import AdminDashboard from "@/pages/admin/Dashboard";
 import CourseList from "@/pages/courses/CourseList";
+import StudentList from "@/pages/students/StudentList";
+import SystemActivity from "@/pages/activity/SystemActivity";
+import CourseQuizzes from "@/pages/quizzes/CourseQuizzes";
+import TakeQuiz from "@/pages/quizzes/TakeQuiz";
+import WatchCourse from "@/pages/courses/WatchCourse";
+import Leaderboard from "@/pages/analytics/Leaderboard";
+import Tasks from "@/pages/tasks/Tasks";
+import { NotificationProvider } from "./hooks/use-notifications";
 
 // Protected Route Wrapper
 function ProtectedRoute({ component: Component, allowedRoles }: { component: any, allowedRoles?: string[] }) {
@@ -85,6 +93,28 @@ function Router() {
       <Route path="/courses">
         {() => <ProtectedRoute component={CourseList} />}
       </Route>
+      <Route path="/tasks">
+        {() => <ProtectedRoute component={Tasks} />}
+      </Route>
+      <Route path="/courses/:courseId/watch">
+        {(params) => <ProtectedRoute component={() => <WatchCourse params={params} />} />}
+      </Route>
+      <Route path="/courses/:courseId/quizzes">
+        {(params) => <ProtectedRoute component={() => <CourseQuizzes params={params} />} />}
+      </Route>
+      <Route path="/courses/:courseId/quizzes/:quizId">
+        {(params) => <ProtectedRoute component={() => <TakeQuiz params={params} />} />}
+      </Route>
+      <Route path="/leaderboard">
+        {() => <ProtectedRoute component={Leaderboard} />}
+      </Route>
+
+      <Route path="/students">
+        {() => <ProtectedRoute component={StudentList} allowedRoles={["instructor", "admin"]} />}
+      </Route>
+      <Route path="/activity">
+        {() => <ProtectedRoute component={SystemActivity} allowedRoles={["admin"]} />}
+      </Route>
 
       <Route component={NotFound} />
     </Switch>
@@ -94,10 +124,12 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Router />
-      </TooltipProvider>
+      <NotificationProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Router />
+        </TooltipProvider>
+      </NotificationProvider>
     </QueryClientProvider>
   );
 }

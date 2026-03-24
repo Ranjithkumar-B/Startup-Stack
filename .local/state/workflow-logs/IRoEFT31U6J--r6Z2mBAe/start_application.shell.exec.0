@@ -1,0 +1,88 @@
+
+> rest-express@1.0.0 dev
+> NODE_ENV=development tsx server/index.ts
+
+[1G[0K4:46:44 PM [express] serving on port 5000
+4:46:50 PM [express] GET /api/auth/me 401 in 2ms :: {"message":"Unauthorized"}
+4:46:50 PM [express] GET /api/auth/me 401 in 1ms :: {"message":"Unauthorized"}
+4:46:53 PM [express] GET /api/auth/me 401 in 1ms :: {"message":"Unauthorized"}
+4:46:56 PM [express] GET /api/auth/me 401 in 1ms :: {"message":"Unauthorized"}
+4:47:50 PM [express] POST /api/auth/login 401 in 15ms :: {"message":"Invalid credentials"}
+4:48:17 PM [express] POST /api/auth/register 201 in 76ms :: {"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NCwicm9sZSI6InN0dWRlbnQiLCJlbWFpbCI6InRlc3RAdGVzdC5jb20iLCJpYXQiOjE3NzMxNjEyOTcsImV4cCI6MTc3Mzc2NjA5N30.D4fZg596Rrd-wprcPDAgz_Zz0QQNNZmCZ3ntXANjcRk","user":{"id":4,"name":"tiger","email":"test@test.com","role":"student","createdAt":"2026-03-10T16:48:17.650Z"}}
+4:48:18 PM [express] GET /api/auth/me 200 in 4ms :: {"id":4,"name":"tiger","email":"test@test.com","role":"student","createdAt":"2026-03-10T16:48:17.650Z"}
+4:48:41 PM [express] POST /api/auth/login 200 in 70ms :: {"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NCwicm9sZSI6InN0dWRlbnQiLCJlbWFpbCI6InRlc3RAdGVzdC5jb20iLCJpYXQiOjE3NzMxNjEzMjEsImV4cCI6MTc3Mzc2NjEyMX0.Rx0nFaJcpRcA1OAKnYud2CGIwtfj90qmkZYeQYxTmoo","user":{"id":4,"name":"tiger","email":"test@test.com","role":"student","createdAt":"2026-03-10T16:48:17.650Z"}}
+4:48:41 PM [express] GET /api/auth/me 304 in 2ms :: {"id":4,"name":"tiger","email":"test@test.com","role":"student","createdAt":"2026-03-10T16:48:17.650Z"}
+4:48:41 PM [express] GET /api/engagement/student/4 200 in 6ms
+4:48:55 PM [express] GET /api/courses 200 in 12ms :: []
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[1;1H[0J[2m4:50:58 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/Login.tsx, /src/index.css[22m
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[1;1H[0J[2m4:51:04 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/instructor/Dashboard.tsx, /src/index.css[22m
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[1;1H[0J[2m4:51:23 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/instructor/Dashboard.tsx, /src/index.css[22m [33m(x2)[39m

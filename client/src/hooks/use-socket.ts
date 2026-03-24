@@ -15,7 +15,8 @@ export function useSocket() {
     if (!token) return;
 
     // Connect to /ws namespace
-    socketRef.current = io("/ws", {
+    socketRef.current = io("/", {
+      path: "/ws",
       auth: { token },
       transports: ["websocket", "polling"],
     });
@@ -50,5 +51,5 @@ export function useSocket() {
     }
   };
 
-  return { activeStudents, emitStudentAction };
+  return { activeStudents, emitStudentAction, socket: socketRef.current };
 }

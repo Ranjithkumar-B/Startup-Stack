@@ -5,15 +5,7 @@ import { StatCard } from "@/components/ui/StatCard";
 import { Server, Users, BookOpen, Target } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-const mockSystemTrend = [
-  { name: 'Mon', logins: 1200 },
-  { name: 'Tue', logins: 1350 },
-  { name: 'Wed', logins: 1280 },
-  { name: 'Thu', logins: 1500 },
-  { name: 'Fri', logins: 1620 },
-  { name: 'Sat', logins: 800 },
-  { name: 'Sun', logins: 950 },
-];
+
 
 export default function AdminDashboard() {
   const { user } = useAuth();
@@ -37,9 +29,9 @@ export default function AdminDashboard() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <StatCard title="Total Users" value="4,250" icon={Users} colorClass="text-primary bg-primary/10" />
-        <StatCard title="Active Courses" value="184" icon={BookOpen} colorClass="text-emerald-600 bg-emerald-500/10" />
-        <StatCard title="Platform Score" value="82/100" icon={Target} colorClass="text-purple-600 bg-purple-500/10" />
+        <StatCard title="Total Users" value={analytics?.totalUsers || 0} icon={Users} colorClass="text-primary bg-primary/10" />
+        <StatCard title="Active Courses" value={analytics?.totalCourses || 0} icon={BookOpen} colorClass="text-emerald-600 bg-emerald-500/10" />
+        <StatCard title="Total Events" value={analytics?.totalEvents || 0} icon={Target} colorClass="text-purple-600 bg-purple-500/10" />
         <StatCard title="Server Health" value="99.9%" icon={Server} colorClass="text-blue-600 bg-blue-500/10" />
       </div>
 
@@ -49,7 +41,7 @@ export default function AdminDashboard() {
         </div>
         <div className="h-80 w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={mockSystemTrend} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+            <AreaChart data={analytics?.systemTrend || []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorLogins" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="hsl(var(--secondary))" stopOpacity={0.3}/>

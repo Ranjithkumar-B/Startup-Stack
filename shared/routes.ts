@@ -49,7 +49,7 @@ export const api = {
     create: {
       method: 'POST' as const,
       path: '/api/courses' as const,
-      input: z.object({ title: z.string(), description: z.string() }),
+      input: z.object({ title: z.string(), description: z.string(), videoUrl: z.string().optional() }),
       responses: {
         201: z.custom<any>(),
         401: errorSchemas.unauthorized,
@@ -90,6 +90,20 @@ export const api = {
         401: errorSchemas.unauthorized,
       },
     },
+    leaderboard: {
+      method: 'GET' as const,
+      path: '/api/analytics/leaderboard' as const,
+      responses: {
+        200: z.array(z.object({
+          id: z.number(),
+          name: z.string(),
+          engagementScore: z.number(),
+          rank: z.number(),
+          avatarLetters: z.string(),
+        })),
+        401: errorSchemas.unauthorized,
+      },
+    },
   },
 };
 
@@ -108,8 +122,12 @@ export function buildUrl(path: string, params?: Record<string, string | number>)
 export const ws = {
   send: {
     student_action: z.object({ courseId: z.number(), eventType: z.string() }),
+    realtime_quiz: z.object({ id: z.string(), courseId: z.number(), question: z.string(), options: z.array(z.string()) }),
+    realtime_answer: z.object({ quizId: z.string(), courseId: z.number(), answerIndex: z.number(), studentId: z.number(), studentName: z.string() }),
   },
   receive: {
     student_active: z.object({ studentId: z.number(), studentName: z.string(), courseId: z.number(), eventType: z.string() }),
+    realtime_quiz: z.object({ id: z.string(), courseId: z.number(), question: z.string(), options: z.array(z.string()) }),
+    realtime_answer: z.object({ quizId: z.string(), courseId: z.number(), answerIndex: z.number(), studentId: z.number(), studentName: z.string() }),
   },
 };

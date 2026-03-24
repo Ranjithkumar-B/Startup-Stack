@@ -2,22 +2,17 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useDashboardAnalytics } from "@/hooks/use-analytics";
 import { useSocket } from "@/hooks/use-socket";
+import { useQueryClient } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { StatCard } from "@/components/ui/StatCard";
-import { Users, AlertTriangle, BookOpen, ActivitySquare, Plus, Trash2, Mail, X } from "lucide-react";
+import { Users, AlertTriangle, BookOpen, ActivitySquare, Plus, Trash2, Mail, X, Radio, CheckCircle2 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { apiClient } from "@/lib/api-client";
-
-const mockDistribution = [
-  { name: 'High', students: 45, fill: 'hsl(var(--accent))' },
-  { name: 'Medium', students: 30, fill: 'hsl(var(--primary))' },
-  { name: 'Low', students: 12, fill: 'hsl(var(--destructive))' },
-];
 
 export default function InstructorDashboard() {
   const { user } = useAuth();
   const { data: analytics, isLoading } = useDashboardAnalytics();
-  const { activeStudents } = useSocket();
+  const { activeStudents, socket } = useSocket();
   const [students, setStudents] = useState<any[]>([]);
   const [showAddStudent, setShowAddStudent] = useState(false);
   const [studentEmail, setStudentEmail] = useState("");
@@ -37,6 +32,8 @@ export default function InstructorDashboard() {
     }
   };
 
+  const queryClient = useQueryClient();
+
   const handleAddStudent = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsAdding(true);
@@ -46,6 +43,8 @@ export default function InstructorDashboard() {
       setStudentName("");
       setShowAddStudent(false);
       loadStudents();
+      queryClient.invalidateQueries({ queryKey: ["/api/analytics/leaderboard"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/analytics/dashboard"] });
     } catch (err: any) {
       alert(err.response?.data?.message || "Failed to add student");
     } finally {
@@ -58,6 +57,8 @@ export default function InstructorDashboard() {
     try {
       await apiClient.delete(`/api/instructor/students/${studentId}`);
       loadStudents();
+      queryClient.invalidateQueries({ queryKey: ["/api/analytics/leaderboard"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/analytics/dashboard"] });
     } catch (err) {
       alert("Failed to remove student");
     }
@@ -73,27 +74,26 @@ export default function InstructorDashboard() {
     );
   }
 
-  const totalStudents = students.length || analytics?.totalStudents || 87;
-  const avgEngagement = analytics?.avgEngagement || 72;
-  const atRisk = analytics?.atRisk || 12;
+  const totalStudents = analytics?.totalStudents || students.length || 0;
+  const avgEngagement = analytics?.avgEngagement || 0;
+  const atRisk = analytics?.atRisk || 0;
+  const activeCourses = analytics?.activeCourses || 0;
 
   return (
     <DashboardLayout>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-display font-bold text-foreground mb-2">Instructor Dashboard</h1>
+          <h1 className="text-3xl font-display font-bold text-foreground mb-2">INSTRUCTOR DASHBOARD</h1>
           <p className="text-muted-foreground text-lg">Monitor your classes and student engagement.</p>
         </div>
-        <button className="px-5 py-2.5 bg-primary text-primary-foreground font-semibold rounded-xl mui-shadow hover:shadow-primary/30 hover:-translate-y-0.5 transition-all">
-          Create New Course
-        </button>
+       
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <StatCard title="Total Students" value={totalStudents} icon={Users} colorClass="text-blue-600 bg-blue-500/10" />
         <StatCard title="Avg Engagement" value={`${avgEngagement}%`} icon={ActivitySquare} colorClass="text-emerald-600 bg-emerald-500/10" />
         <StatCard title="At Risk Students" value={atRisk} icon={AlertTriangle} colorClass="text-destructive bg-destructive/10" />
-        <StatCard title="Active Courses" value={3} icon={BookOpen} colorClass="text-purple-600 bg-purple-500/10" />
+        <StatCard title="Active Courses" value={activeCourses} icon={BookOpen} colorClass="text-purple-600 bg-purple-500/10" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -101,7 +101,7 @@ export default function InstructorDashboard() {
           <h2 className="text-xl font-display font-bold mb-6">Engagement Distribution</h2>
           <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={analytics?.distribution || mockDistribution} margin={{ top: 10, right: 10, left: -20, bottom: 0 }} barSize={60}>
+              <BarChart data={analytics?.distribution || []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }} barSize={60}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'hsl(var(--muted-foreground))' }} dy={10} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fill: 'hsl(var(--muted-foreground))' }} />
@@ -125,17 +125,18 @@ export default function InstructorDashboard() {
           </div>
           
           <div className="flex-1 overflow-y-auto pr-2 space-y-3">
-            {activeStudents.length === 0 ? (
+            {activeStudents.length === 0 && (!analytics?.recentEvents || analytics.recentEvents.length === 0) ? (
               <div className="h-full flex flex-col items-center justify-center text-muted-foreground">
                 <ActivitySquare className="w-10 h-10 mb-2 opacity-20" />
                 <p className="text-sm font-medium">Waiting for student activity...</p>
               </div>
             ) : (
-              activeStudents.map((event, idx) => (
+              [...activeStudents, ...(analytics?.recentEvents || []).filter((re: any) => !activeStudents.find(a => a.studentId === re.studentId && a.eventType === re.eventType))].slice(0, 10).map((event, idx) => (
                 <div key={idx} className="p-3 rounded-xl bg-muted/50 border border-border/50 animate-in slide-in-from-right-4 fade-in">
                   <p className="text-sm font-semibold text-foreground">{event.studentName}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {event.eventType.replace('_', ' ')} in Course {event.courseId}
+                  <p className="text-xs text-muted-foreground mt-0.5 flex items-center justify-between">
+                    <span>{event.eventType.replace('_', ' ')} in Course {event.courseId}</span>
+                    <span className="opacity-60">{event.timestamp ? new Date(event.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Just now'}</span>
                   </p>
                 </div>
               ))
@@ -272,6 +273,8 @@ export default function InstructorDashboard() {
           </table>
         </div>
       </div>
+
+
     </DashboardLayout>
   );
 }

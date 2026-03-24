@@ -1,0 +1,32 @@
+
+> rest-express@1.0.0 dev
+> NODE_ENV=development tsx server/index.ts
+
+[1G[0K4:51:56 PM [express] serving on port 5000
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[1;1H[0J[2m4:52:13 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/pages/Login.tsx, /src/pages/student/Dashboard.tsx, /src/pages/admin/Dashboard.tsx, /src/pages/Register.tsx, /src/pages/instructor/Dashboard.tsx, /src/pages/courses/CourseList.tsx, /src/components/layout/Header.tsx, /src/components/layout/Sidebar.tsx, /src/index.css[22m
+4:52:17 PM [express] GET /api/auth/me 304 in 15ms :: {"id":4,"name":"tiger","email":"test@test.com","role":"student","createdAt":"2026-03-10T16:48:17.650Z"}
+4:52:19 PM [express] GET /api/auth/me 304 in 3ms :: {"id":4,"name":"tiger","email":"test@test.com","role":"student","createdAt":"2026-03-10T16:48:17.650Z"}
+4:52:20 PM [express] GET /api/engagement/student/4 200 in 7ms

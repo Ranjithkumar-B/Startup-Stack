@@ -1,0 +1,21 @@
+
+> rest-express@1.0.0 dev
+> NODE_ENV=development tsx server/index.ts
+
+[1G[0K4:52:23 PM [express] serving on port 5000
+4:52:27 PM [express] GET /api/auth/me 304 in 7ms :: {"id":4,"name":"tiger","email":"test@test.com","role":"student","createdAt":"2026-03-10T16:48:17.650Z"}
+4:52:30 PM [express] GET /api/auth/me 304 in 3ms :: {"id":4,"name":"tiger","email":"test@test.com","role":"student","createdAt":"2026-03-10T16:48:17.650Z"}
+4:52:30 PM [express] GET /api/engagement/student/4 200 in 5ms
+4:52:33 PM [express] GET /api/auth/me 401 in 1ms :: {"message":"Unauthorized"}
+4:52:36 PM [express] GET /api/auth/me 401 in 1ms :: {"message":"Unauthorized"}
+4:52:38 PM [express] GET /api/auth/me 401 in 1ms :: {"message":"Unauthorized"}
+4:52:38 PM [express] GET /api/auth/me 401 in 0ms :: {"message":"Unauthorized"}
+4:53:04 PM [express] POST /api/auth/login 401 in 12ms :: {"message":"Invalid credentials"}
+4:53:31 PM [express] POST /api/auth/register 201 in 107ms :: {"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NSwicm9sZSI6Imluc3RydWN0b3IiLCJlbWFpbCI6InRlc3RAdHQuY29tIiwiaWF0IjoxNzczMTYxNjExLCJleHAiOjE3NzM3NjY0MTF9.wupWh-bXOdQDhALFL-NLXDRGrNkfKHU3DlC7oZjju7I","user":{"id":5,"name":"ranjith","email":"test@tt.com","role":"instructor","createdAt":"2026-03-10T16:53:31.464Z"}}
+4:53:31 PM [express] GET /api/auth/me 200 in 3ms :: {"id":5,"name":"ranjith","email":"test@tt.com","role":"instructor","createdAt":"2026-03-10T16:53:31.464Z"}
+4:53:42 PM [express] POST /api/auth/login 200 in 70ms :: {"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NSwicm9sZSI6Imluc3RydWN0b3IiLCJlbWFpbCI6InRlc3RAdHQuY29tIiwiaWF0IjoxNzczMTYxNjIyLCJleHAiOjE3NzM3NjY0MjJ9.wDZMjCuSEBwJitPgSt31wp9OCxHilbNcLMcIbWlpNdo","user":{"id":5,"name":"ranjith","email":"test@tt.com","role":"instructor","createdAt":"2026-03-10T16:53:31.464Z"}}
+4:53:42 PM [express] GET /api/auth/me 304 in 3ms :: {"id":5,"name":"ranjith","email":"test@tt.com","role":"instructor","createdAt":"2026-03-10T16:53:31.464Z"}
+4:53:42 PM [express] GET /api/analytics/dashboard 200 in 0ms :: {}
+4:53:42 PM [express] GET /api/instructor/students 200 in 2ms :: []
+4:53:47 PM [express] GET /api/courses 304 in 2ms :: []
+4:53:58 PM [express] GET /api/auth/me 304 in 13ms :: {"id":5,"name":"ranjith","email":"test@tt.com","role":"instructor","createdAt":"2026-03-10T16:53:31.464Z"}

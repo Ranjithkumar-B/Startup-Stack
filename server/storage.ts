@@ -1,9 +1,11 @@
 import { db } from "./db";
 import {
-  users, courses, enrollments, engagementEvents,
+  users, courses, enrollments, engagementEvents, instructorStudents,
+  quizzes, quizQuestions, quizSubmissions,
   type User, type Course, type Enrollment, type EngagementEvent,
+  type Quiz, type QuizQuestion, type QuizSubmission,
 } from "@shared/schema";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc, sql, inArray, and } from "drizzle-orm";
 import type { z } from "zod";
 import type { registerSchema, eventSchema } from "@shared/schema";
 
@@ -17,6 +19,7 @@ export interface IStorage {
   getCoursesByInstructor(instructorId: number): Promise<Course[]>;
   getEnrolledCourses(studentId: number): Promise<(Course & { progress: number })[]>;
   createCourse(course: Omit<Course, "id">): Promise<Course>;
+  deleteCourse(id: number): Promise<void>;
   
   // Enrollments
   enrollStudent(studentId: number, courseId: number): Promise<Enrollment>;
@@ -27,14 +30,33 @@ export interface IStorage {
   getCourseEvents(courseId: number): Promise<EngagementEvent[]>;
   getAllEvents(): Promise<EngagementEvent[]>;
   
+  // Quizzes
+  getQuiz(id: number): Promise<Quiz | undefined>;
+  createQuiz(quiz: Omit<Quiz, "id">): Promise<Quiz>;
+  deleteQuiz(id: number): Promise<void>;
+  createQuizQuestion(question: Omit<QuizQuestion, "id">): Promise<QuizQuestion>;
+  getQuizzesByCourse(courseId: number): Promise<Quiz[]>;
+  getQuizQuestions(quizId: number): Promise<QuizQuestion[]>;
+  submitQuiz(submission: Omit<QuizSubmission, "id" | "submittedAt">): Promise<QuizSubmission>;
+  getQuizSubmissions(studentId: number, courseId?: number): Promise<QuizSubmission[]>;
+  
+
+  
   // Instructor student management
   getStudentsByInstructor(instructorId: number): Promise<any[]>;
-  removeStudentFromInstructor(studentId: number): Promise<void>;
+  removeStudentFromInstructor(instructorId: number, studentId: number): Promise<void>;
+  linkInstructorStudent(instructorId: number, studentId: number): Promise<void>;
+  
+  // Admin student management
+  getAllStudents(): Promise<any[]>;
+  getLeaderboard(userId?: number, role?: string): Promise<any[]>;
   
   getPlatformStats(): Promise<any>;
 }
 
 export class DatabaseStorage implements IStorage {
+// ... omitting unchanged parts ...
+
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
@@ -80,6 +102,12 @@ export class DatabaseStorage implements IStorage {
     return newCourse;
   }
 
+  async deleteCourse(id: number): Promise<void> {
+    await db.delete(engagementEvents).where(eq(engagementEvents.courseId, id));
+    await db.delete(enrollments).where(eq(enrollments.courseId, id));
+    await db.delete(courses).where(eq(courses.id, id));
+  }
+
   async enrollStudent(studentId: number, courseId: number): Promise<Enrollment> {
     const [enrollment] = await db.insert(enrollments).values({ studentId, courseId }).returning();
     return enrollment;
@@ -107,63 +135,214 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(engagementEvents).orderBy(desc(engagementEvents.timestamp));
   }
   
+  // Quizzes
+  async getQuiz(id: number): Promise<Quiz | undefined> {
+    const [quiz] = await db.select().from(quizzes).where(eq(quizzes.id, id));
+    return quiz;
+  }
+
+  async createQuiz(quiz: Omit<Quiz, "id">): Promise<Quiz> {
+    const [newQuiz] = await db.insert(quizzes).values(quiz).returning();
+    return newQuiz;
+  }
+
+  async deleteQuiz(id: number): Promise<void> {
+    await db.delete(quizQuestions).where(eq(quizQuestions.quizId, id));
+    await db.delete(quizSubmissions).where(eq(quizSubmissions.quizId, id));
+    await db.delete(quizzes).where(eq(quizzes.id, id));
+  }
+
+  async createQuizQuestion(question: Omit<QuizQuestion, "id">): Promise<QuizQuestion> {
+    const [newQuestion] = await db.insert(quizQuestions).values(question).returning();
+    return newQuestion;
+  }
+
+  async getQuizzesByCourse(courseId: number): Promise<Quiz[]> {
+    return await db.select().from(quizzes).where(eq(quizzes.courseId, courseId));
+  }
+
+  async getQuizQuestions(quizId: number): Promise<QuizQuestion[]> {
+    return await db.select().from(quizQuestions).where(eq(quizQuestions.quizId, quizId));
+  }
+
+  async submitQuiz(submission: Omit<QuizSubmission, "id" | "submittedAt">): Promise<QuizSubmission> {
+    const [newSubmission] = await db.insert(quizSubmissions).values(submission).returning();
+    return newSubmission;
+  }
+
+  async getQuizSubmissions(studentId: number, courseId?: number): Promise<QuizSubmission[]> {
+    const conditions = [eq(quizSubmissions.studentId, studentId)];
+    if (courseId) {
+      conditions.push(eq(quizzes.courseId, courseId));
+    }
+    
+    const results = await db.select({
+      submission: quizSubmissions,
+      quiz: quizzes,
+    }).from(quizSubmissions)
+      .innerJoin(quizzes, eq(quizSubmissions.quizId, quizzes.id))
+      .where(and(...conditions));
+      
+    return results.map(r => ({ ...r.submission }));
+  }
+
+
+  
+  async linkInstructorStudent(instructorId: number, studentId: number): Promise<void> {
+    const existing = await db.select().from(instructorStudents)
+      .where(and(eq(instructorStudents.instructorId, instructorId), eq(instructorStudents.studentId, studentId)));
+    
+    if (existing.length === 0) {
+      await db.insert(instructorStudents).values({ instructorId, studentId });
+    }
+  }
+
   async getStudentsByInstructor(instructorId: number): Promise<any[]> {
-    const instructorCourses = await db.select().from(courses).where(eq(courses.instructorId, instructorId));
-    const courseIds = instructorCourses.map(c => c.id);
-    
-    if (courseIds.length === 0) return [];
-    
     const studentList = await db.select({
       id: users.id,
       name: users.name,
       email: users.email,
       role: users.role,
     })
-    .from(enrollments)
-    .innerJoin(users, eq(enrollments.studentId, users.id))
-    .where(
-      sql`${enrollments.courseId} = ANY(${courseIds}::int[])`
-    );
+    .from(instructorStudents)
+    .innerJoin(users, eq(instructorStudents.studentId, users.id))
+    .where(eq(instructorStudents.instructorId, instructorId));
     
-    const uniqueStudents = studentList.reduce((acc: any[], student: any) => {
-      if (!acc.find(s => s.id === student.id)) {
-        acc.push(student);
-      }
-      return acc;
-    }, []);
+    let maxPoints = 1;
+    for (const student of studentList) {
+       const evs = await this.getStudentEvents(student.id);
+       const pts = this.calculateEngagementScore(evs);
+       if (pts > maxPoints) maxPoints = pts;
+    }
 
     // Attach engagement scores
     const studentsWithScore = await Promise.all(
-      uniqueStudents.map(async (student) => {
+      studentList.map(async (student) => {
         const events = await this.getStudentEvents(student.id);
-        const engagementScore = this.calculateEngagementScore(events);
-        return { ...student, engagementScore };
+        const rawPoints = this.calculateEngagementScore(events);
+        const engagementScore = Math.round((rawPoints / maxPoints) * 100);
+        return { ...student, engagementScore, points: rawPoints };
       })
     );
 
     return studentsWithScore;
   }
 
-  async removeStudentFromInstructor(studentId: number): Promise<void> {
-    await db.delete(enrollments).where(eq(enrollments.studentId, studentId));
+  async getAllStudents(): Promise<any[]> {
+    const studentList = await db.select({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      role: users.role,
+    })
+    .from(users)
+    .where(eq(users.role, 'student'));
+    
+    let maxPoints = 1;
+    for (const student of studentList) {
+       const evs = await this.getStudentEvents(student.id);
+       const pts = this.calculateEngagementScore(evs);
+       if (pts > maxPoints) maxPoints = pts;
+    }
+
+    // Attach engagement scores
+    const studentsWithScore = await Promise.all(
+      studentList.map(async (student) => {
+        const events = await this.getStudentEvents(student.id);
+        const rawPoints = this.calculateEngagementScore(events);
+        const engagementScore = Math.round((rawPoints / maxPoints) * 100);
+        return { ...student, engagementScore, points: rawPoints };
+      })
+    );
+
+    return studentsWithScore;
+  }
+
+  async getLeaderboard(userId?: number, role?: string): Promise<any[]> {
+    let students: any[] = [];
+    if (role === 'instructor' && userId) {
+      students = await this.getStudentsByInstructor(userId);
+    } else if (role === 'student' && userId) {
+      const [instructorLink] = await db.select()
+        .from(instructorStudents)
+        .where(eq(instructorStudents.studentId, userId))
+        .limit(1);
+      
+      if (instructorLink) {
+        students = await this.getStudentsByInstructor(instructorLink.instructorId);
+      } else {
+        students = [];
+      }
+    } else {
+      students = await this.getAllStudents();
+    }
+    
+    const ranked = students
+      .filter(s => s.points > 0)
+      .sort((a, b) => b.points - a.points)
+      .slice(0, 10)
+      .map((s, idx) => ({
+        id: s.id,
+        name: s.name,
+        engagementScore: s.points, // Use raw points for leaderboard
+        points: s.points,
+        rank: idx + 1,
+        avatarLetters: s.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase(),
+      }));
+    return ranked;
+  }
+
+  async removeStudentFromInstructor(instructorId: number, studentId: number): Promise<void> {
+    await db.delete(instructorStudents)
+      .where(
+        and(
+          eq(instructorStudents.instructorId, instructorId),
+          eq(instructorStudents.studentId, studentId)
+        )
+      );
+      
+    const courses = await this.getCoursesByInstructor(instructorId);
+    if (courses.length > 0) {
+      const courseIds = courses.map(c => c.id);
+      
+      await db.delete(enrollments)
+        .where(
+          and(
+            eq(enrollments.studentId, studentId),
+            inArray(enrollments.courseId, courseIds)
+          )
+        );
+        
+      const qs = await db.select({ id: quizzes.id }).from(quizzes).where(inArray(quizzes.courseId, courseIds));
+      const quizIds = qs.map(q => q.id);
+      
+      if (quizIds.length > 0) {
+        await db.delete(quizSubmissions)
+          .where(
+            and(
+              eq(quizSubmissions.studentId, studentId),
+              inArray(quizSubmissions.quizId, quizIds)
+            )
+          );
+      }
+    }
+    
+    // Completely wipe out engagement events (including 'login' events without course associations)
+    await db.delete(engagementEvents).where(eq(engagementEvents.studentId, studentId));
   }
 
   private calculateEngagementScore(events: EngagementEvent[]): number {
     if (events.length === 0) return 0;
     
     let score = 0;
-    const eventCounts: { [key: string]: number } = {};
-    
     events.forEach(event => {
-      eventCounts[event.eventType] = (eventCounts[event.eventType] || 0) + 1;
+      if (event.eventType === 'login') score += 2;
+      else if (event.eventType === 'video_watch') score += 3;
+      else if (event.eventType === 'quiz_submit') score += 10;
+      else if (event.eventType === 'assignment_submit') score += 8;
     });
     
-    score += (eventCounts['login'] || 0) * 2;
-    score += (eventCounts['video_watch'] || 0) * 3;
-    score += (eventCounts['quiz_submit'] || 0) * 10;
-    score += (eventCounts['assignment_submit'] || 0) * 8;
-    
-    return Math.min(Math.round(score / 10), 100);
+    return Math.round(score);
   }
 
   async getPlatformStats(): Promise<any> {
