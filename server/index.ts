@@ -61,33 +61,36 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  await connectDB();
-  await registerRoutes(httpServer, app);
+  try {
+    log("Starting DB connection...");
+    await connectDB();
+    log("DB connected successfully.");
 
-  app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+    log("Registering routes...");
+    await registerRoutes(httpServer, app);
+    log("Routes registered successfully.");
 
-    console.error("Internal Server Error:", err);
+    app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
+      const status = err.status || err.statusCode || 500;
+      const message = err.message || "Internal Server Error";
+      console.error("Internal Server Error:", err);
+      if (res.headersSent) {
+        return next(err);
+      }
+      return res.status(status).json({ message });
+    });
 
-    if (res.headersSent) {
-      return next(err);
-    }
+    log("Setting up static files...");
+    serveStatic(app);
+    log("Static files setup complete.");
 
-    return res.status(status).json({ message });
-  });
-
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  serveStatic(app);
-
-  // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 5000 if not specified.
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || "5000", 10);
-  httpServer.listen(port, "0.0.0.0", () => {
-    log(`serving on port ${port} on 0.0.0.0`);
-  });
+    const port = parseInt(process.env.PORT || "5000", 10);
+    httpServer.listen(port, "0.0.0.0", () => {
+      log(`serving on port ${port} on 0.0.0.0 🎉`);
+    });
+  } catch (error) {
+    log(`FATAL STARTUP ERROR: ${error}`);
+    console.error(error);
+    process.exit(1);
+  }
 })();
