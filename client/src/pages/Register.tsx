@@ -10,7 +10,7 @@ export default function Register() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<"student" | "instructor" | "admin">("student");
+  const [role, setRole] = useState<"student" | "faculty" | "admin">("student");
   const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -83,7 +83,7 @@ export default function Register() {
 
           <div>
             <div className="grid grid-cols-2 gap-4">
-              {(["student", "instructor"] as const).map((r) => (
+              {(["student", "faculty"] as const).map((r) => (
                 <label 
                   key={r} 
                   className={`
@@ -101,7 +101,7 @@ export default function Register() {
                     onChange={(e) => setRole(e.target.value as any)}
                     className="sr-only"
                   />
-                  <span className="capitalize">{r}</span>
+                  <span className="capitalize">{r === "faculty" ? "Faculty" : r}</span>
                 </label>
               ))}
             </div>

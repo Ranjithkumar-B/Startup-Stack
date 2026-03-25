@@ -6,10 +6,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { StatCard } from "@/components/ui/StatCard";
 import { Users, AlertTriangle, BookOpen, ActivitySquare, Plus, Trash2, Mail, X, Radio, CheckCircle2 } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { apiClient } from "@/lib/api-client";
 
-export default function InstructorDashboard() {
+export default function FacultyDashboard() {
   const { user } = useAuth();
   const { data: analytics, isLoading } = useDashboardAnalytics();
   const { activeStudents, socket } = useSocket();
@@ -25,7 +25,7 @@ export default function InstructorDashboard() {
 
   const loadStudents = async () => {
     try {
-      const response = await apiClient.get("/api/instructor/students");
+      const response = await apiClient.get("/api/faculty/students");
       setStudents(response.data);
     } catch (err) {
       console.error("Failed to load students:", err);
@@ -38,7 +38,7 @@ export default function InstructorDashboard() {
     e.preventDefault();
     setIsAdding(true);
     try {
-      await apiClient.post("/api/instructor/add-student", { email: studentEmail, name: studentName });
+      await apiClient.post("/api/faculty/add-student", { email: studentEmail, name: studentName });
       setStudentEmail("");
       setStudentName("");
       setShowAddStudent(false);
@@ -55,7 +55,7 @@ export default function InstructorDashboard() {
   const handleRemoveStudent = async (studentId: number) => {
     if (!confirm("Are you sure you want to remove this student?")) return;
     try {
-      await apiClient.delete(`/api/instructor/students/${studentId}`);
+      await apiClient.delete(`/api/faculty/students/${studentId}`);
       loadStudents();
       queryClient.invalidateQueries({ queryKey: ["/api/analytics/leaderboard"] });
       queryClient.invalidateQueries({ queryKey: ["/api/analytics/dashboard"] });
@@ -83,7 +83,7 @@ export default function InstructorDashboard() {
     <DashboardLayout>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-display font-bold text-foreground mb-2">INSTRUCTOR DASHBOARD</h1>
+          <h1 className="text-3xl font-display font-bold text-foreground mb-2">FACULTY DASHBOARD</h1>
           <p className="text-muted-foreground text-lg">Monitor your classes and student engagement.</p>
         </div>
        
@@ -106,7 +106,11 @@ export default function InstructorDashboard() {
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'hsl(var(--muted-foreground))' }} dy={10} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fill: 'hsl(var(--muted-foreground))' }} />
                 <Tooltip cursor={{ fill: 'hsl(var(--muted))' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }} />
-                <Bar dataKey="students" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="students" radius={[6, 6, 0, 0]}>
+                  {(analytics?.distribution || []).map((entry: any, index: number) => (
+                    <Cell key={`cell-${index}`} fill={entry.fill} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -252,10 +256,10 @@ export default function InstructorDashboard() {
                         <div className="w-16 h-2 bg-muted rounded-full overflow-hidden">
                           <div 
                             className="h-full bg-emerald-500 rounded-full" 
-                            style={{ width: `${Math.min(student.engagementScore || 65, 100)}%` }}
+                            style={{ width: `${Math.min(student.engagementScore || 0, 100)}%` }}
                           />
                         </div>
-                        <span className="text-xs font-semibold text-foreground">{student.engagementScore || 65}%</span>
+                        <span className="text-xs font-semibold text-foreground">{student.engagementScore || 0}%</span>
                       </div>
                     </td>
                     <td className="p-3 text-right">

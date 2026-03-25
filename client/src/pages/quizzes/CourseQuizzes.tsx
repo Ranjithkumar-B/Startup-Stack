@@ -18,7 +18,7 @@ export default function CourseQuizzes({ params }: { params: { courseId: string }
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
 
-  const isInstructor = user?.role === "instructor" || user?.role === "admin";
+  const isFaculty = user?.role === "faculty" || user?.role === "admin";
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,7 +64,7 @@ export default function CourseQuizzes({ params }: { params: { courseId: string }
           <p className="text-muted-foreground text-lg">Manage and take course quizzes</p>
         </div>
         
-        {isInstructor && (
+        {isFaculty && (
           <button
             onClick={() => setShowCreate(true)}
             className="px-5 py-2.5 bg-primary text-primary-foreground font-semibold rounded-xl mui-shadow hover:shadow-primary/30 hover:-translate-y-0.5 transition-all flex items-center gap-2"
@@ -75,7 +75,7 @@ export default function CourseQuizzes({ params }: { params: { courseId: string }
         )}
       </div>
 
-      {showCreate && isInstructor && (
+      {showCreate && isFaculty && (
         <div className="bg-card p-6 rounded-2xl border border-border mui-shadow mb-8 animate-in fade-in">
           <h2 className="text-xl font-bold mb-4">Create New Quiz</h2>
           <form onSubmit={handleCreate} className="space-y-4">
@@ -113,7 +113,7 @@ export default function CourseQuizzes({ params }: { params: { courseId: string }
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {quizzes?.map((quiz: any) => (
           <div key={quiz.id} className="bg-card p-6 rounded-2xl border border-border hover:border-primary/50 transition-colors mui-shadow group relative">
-            {isInstructor && (
+            {isFaculty && (
               <button 
                 onClick={(e) => handleDelete(e, quiz.id)}
                 disabled={deletingId === quiz.id}
@@ -126,7 +126,7 @@ export default function CourseQuizzes({ params }: { params: { courseId: string }
             <h3 className="text-xl font-bold mb-2 text-foreground pr-8">{quiz.title}</h3>
             <p className="text-muted-foreground mb-6 line-clamp-2 min-h-12">{quiz.description}</p>
             
-            {quiz.isSubmitted && !isInstructor ? (
+            {quiz.isSubmitted && !isFaculty ? (
               <div className="bg-emerald-500/10 text-emerald-600 font-bold p-3 rounded-xl flex items-center justify-between">
                 <span>Completed</span>
                 <span className="text-lg">{quiz.score}%</span>
@@ -136,7 +136,7 @@ export default function CourseQuizzes({ params }: { params: { courseId: string }
                 onClick={() => setLocation(`/courses/${courseId}/quizzes/${quiz.id}`)}
                 className="w-full py-3 bg-muted group-hover:bg-primary group-hover:text-primary-foreground text-foreground rounded-xl font-bold transition-colors flex items-center justify-center gap-2"
               >
-                {isInstructor ? (
+                {isFaculty ? (
                   <><List className="w-5 h-5" /> Manage Questions</>
                 ) : (
                   <><PlayCircle className="w-5 h-5" /> Start Quiz</>

@@ -28,7 +28,7 @@ export function Sidebar() {
     { href: "/courses", label: "Courses", icon: BookOpen },
     { href: "/tasks", label: "Tasks", icon: ClipboardList },
     { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
-    ...(user.role === "instructor" || user.role === "admin" 
+    ...(user.role === "faculty" || user.role === "admin" 
       ? [{ href: "/students", label: "Students", icon: Users }] 
       : []),
     ...(user.role === "admin" 

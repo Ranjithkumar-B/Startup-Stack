@@ -49,7 +49,7 @@ export const api = {
     create: {
       method: 'POST' as const,
       path: '/api/courses' as const,
-      input: z.object({ title: z.string(), description: z.string(), videoUrl: z.string().optional() }),
+      input: z.object({ title: z.string(), description: z.string(), videoUrl: z.string().optional(), duration: z.number().optional() }),
       responses: {
         201: z.custom<any>(),
         401: errorSchemas.unauthorized,

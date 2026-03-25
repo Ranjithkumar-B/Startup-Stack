@@ -62,11 +62,11 @@ export default function Leaderboard() {
               </div>
 
               {/* Score section */}
-              <div className="pr-8 text-right">
+              <div className="pr-8 text-right min-w-[120px]">
                  <p className="text-3xl font-display font-black text-foreground/90 tabular-nums">
-                    {student.engagementScore}
+                    {student.points}/{student.maxPoints}
                  </p>
-                 <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Points</p>
+                 <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Score</p>
               </div>
 
               {/* Highlight for Top 3 */}

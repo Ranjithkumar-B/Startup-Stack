@@ -1,25 +1,34 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { useCourses, useCreateCourse, useDeleteCourse } from "@/hooks/use-courses";
+import { useCourses, useCreateCourse, useDeleteCourse, useUpdateCourse } from "@/hooks/use-courses";
 import { useAuth } from "@/hooks/use-auth";
 import { useLogEngagement } from "@/hooks/use-engagement";
 import { useToast } from "@/hooks/use-toast";
 import { useNotifications } from "@/hooks/use-notifications";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { BookOpen, Search, Filter, Plus, Loader2, Youtube, PlayCircle, Trash2 } from "lucide-react";
+import { BookOpen, Search, Filter, Plus, Loader2, Youtube, PlayCircle, Trash2, Pencil } from "lucide-react";
 
 export default function CourseList() {
   const { user } = useAuth();
   const { data: courses, isLoading } = useCourses();
   const { mutateAsync: createCourse, isPending: isCreating } = useCreateCourse();
+  const { mutateAsync: updateCourse, isPending: isUpdating } = useUpdateCourse();
   const { mutateAsync: deleteCourse } = useDeleteCourse();
   const { mutateAsync: logEngagement } = useLogEngagement();
   const { toast } = useToast();
   const { addNotification } = useNotifications();
   const [showCreate, setShowCreate] = useState(false);
+  const [editingCourse, setEditingCourse] = useState<any | null>(null);
+  
   const [newTitle, setNewTitle] = useState("");
   const [newDesc, setNewDesc] = useState("");
   const [newUrl, setNewUrl] = useState("");
+  const [newDuration, setNewDuration] = useState("30");
+  
+  const [editTitle, setEditTitle] = useState("");
+  const [editDesc, setEditDesc] = useState("");
+  const [editUrl, setEditUrl] = useState("");
+  const [editDuration, setEditDuration] = useState("30");
   const [studyingCourse, setStudyingCourse] = useState<number | null>(null);
   const [deletingCourse, setDeletingCourse] = useState<number | null>(null);
   const [localSearchQuery, setLocalSearchQuery] = useState("");
@@ -82,13 +91,38 @@ export default function CourseList() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle) return;
-    await createCourse({ title: newTitle, description: newDesc, videoUrl: newUrl });
+    await createCourse({ title: newTitle, description: newDesc, videoUrl: newUrl, duration: Number(newDuration) });
     toast({ title: "Success", description: "Course created successfully" });
     addNotification("Course Published", `A new course "${newTitle}" has been successfully added to the catalog.`, "success");
     setShowCreate(false);
     setNewTitle("");
     setNewDesc("");
     setNewUrl("");
+    setNewDuration("30");
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingCourse || !editTitle) return;
+    try {
+      await updateCourse({ 
+        id: editingCourse.id, 
+        courseData: { title: editTitle, description: editDesc, videoUrl: editUrl, duration: Number(editDuration) } 
+      });
+      toast({ title: "Success", description: "Course updated successfully" });
+      setEditingCourse(null);
+    } catch (err) {
+      toast({ title: "Error", description: "Failed to update course", variant: "destructive" });
+    }
+  };
+
+  const startEdit = (course: any) => {
+    setEditingCourse(course);
+    setEditTitle(course.title);
+    setEditDesc(course.description);
+    setEditUrl(course.videoUrl || "");
+    setEditDuration(String(course.duration || 30));
+    setShowCreate(false);
   };
 
   if (isLoading) {
@@ -118,7 +152,7 @@ export default function CourseList() {
             <Filter className="w-5 h-5" />
           </button>
           
-          {(user?.role === "instructor" || user?.role === "admin") && (
+          {(user?.role === "faculty" || user?.role === "admin") && (
             <button 
               onClick={() => setShowCreate(true)}
               className="px-5 py-2.5 bg-primary text-primary-foreground font-semibold rounded-xl mui-shadow flex items-center gap-2 hover:shadow-primary/30 hover:-translate-y-0.5 transition-all"
@@ -129,6 +163,61 @@ export default function CourseList() {
           )}
         </div>
       </div>
+
+      {editingCourse && (
+        <div className="mb-8 bg-card rounded-2xl p-6 mui-shadow border-2 border-primary/20 animate-in fade-in slide-in-from-top-4">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-display font-bold">Edit Course: {editingCourse.title}</h2>
+            <button onClick={() => setEditingCourse(null)} className="p-2 hover:bg-muted rounded-lg transition-colors"><Plus className="w-5 h-5 rotate-45" /></button>
+          </div>
+          <form onSubmit={handleUpdate} className="space-y-4 max-w-2xl">
+            <div>
+              <label className="block text-sm font-semibold mb-1.5">Course Title</label>
+              <input
+                type="text"
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold mb-1.5">Description</label>
+              <textarea
+                value={editDesc}
+                onChange={(e) => setEditDesc(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all min-h-[100px]"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold mb-1.5 flex items-center gap-2"><Youtube className="w-4 h-4 text-red-500" /> Video URL</label>
+              <input
+                type="text"
+                value={editUrl}
+                onChange={(e) => setEditUrl(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold mb-1.5 flex items-center gap-2">Video Duration (Minutes)</label>
+              <input
+                type="number"
+                value={editDuration}
+                onChange={(e) => setEditDuration(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all"
+                required
+              />
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button type="button" onClick={() => setEditingCourse(null)} className="px-5 py-2.5 rounded-xl font-semibold bg-muted text-foreground hover:bg-border transition-colors">Cancel</button>
+              <button type="submit" disabled={isUpdating} className="px-5 py-2.5 rounded-xl font-semibold bg-primary text-primary-foreground mui-shadow hover:shadow-md flex items-center gap-2 disabled:opacity-70">
+                {isUpdating ? <Loader2 className="w-5 h-5 animate-spin" /> : "Update Course"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {showCreate && (
         <div className="mb-8 bg-card rounded-2xl p-6 mui-shadow border border-border animate-in fade-in slide-in-from-top-4">
@@ -161,6 +250,16 @@ export default function CourseList() {
                 onChange={(e) => setNewUrl(e.target.value)}
                 placeholder="YouTube link or Embed URL"
                 className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold mb-1.5 flex items-center gap-2">Video Duration (Minutes)</label>
+              <input
+                type="number"
+                value={newDuration}
+                onChange={(e) => setNewDuration(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border focus:bg-background focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all"
+                required
               />
             </div>
             <div className="flex gap-3 pt-2">
@@ -203,19 +302,28 @@ export default function CourseList() {
                     <Youtube className="w-5 h-5" />
                   </a>
                   
-                  {user?.role === 'instructor' && (
-                    <button
-                      onClick={(e) => handleDelete(e, course.id)}
-                      disabled={deletingCourse === course.id}
-                      title="Delete course"
-                      className="w-10 h-10 rounded-xl bg-destructive/10 text-destructive border border-destructive/20 flex items-center justify-center hover:bg-destructive hover:text-white transition-all hover:scale-110 mui-shadow disabled:opacity-50 disabled:hover:scale-100"
-                    >
-                      {deletingCourse === course.id ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Trash2 className="w-4 h-4" />
-                      )}
-                    </button>
+                  {user?.role === 'faculty' && (
+                    <div className="flex gap-2">
+                       <button
+                        onClick={(e) => { e.stopPropagation(); startEdit(course); }}
+                        title="Edit course"
+                        className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 border border-blue-500/20 flex items-center justify-center hover:bg-blue-500 hover:text-white transition-all hover:scale-110 mui-shadow"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={(e) => handleDelete(e, course.id)}
+                        disabled={deletingCourse === course.id}
+                        title="Delete course"
+                        className="w-10 h-10 rounded-xl bg-destructive/10 text-destructive border border-destructive/20 flex items-center justify-center hover:bg-destructive hover:text-white transition-all hover:scale-110 mui-shadow disabled:opacity-50 disabled:hover:scale-100"
+                      >
+                        {deletingCourse === course.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
@@ -223,16 +331,7 @@ export default function CourseList() {
               <p className="text-sm text-muted-foreground mb-6 line-clamp-2 flex-1">{course.description}</p>
               
               <div className="mt-auto">
-                <div className="flex justify-between items-center text-xs font-semibold text-muted-foreground mb-2">
-                  <span>Progress</span>
-                  <span className="text-foreground">{course.progress}%</span>
-                </div>
-                <div className="w-full h-2 bg-muted rounded-full overflow-hidden mb-4">
-                  <div 
-                    className="h-full bg-primary rounded-full" 
-                    style={{ width: `${course.progress}%` }}
-                  ></div>
-                </div>
+
                 
                 {user?.role === 'student' && (
                   <button
@@ -240,7 +339,7 @@ export default function CourseList() {
                     className="w-full py-2.5 rounded-xl font-semibold bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-all flex items-center justify-center gap-2"
                   >
                     <PlayCircle className="w-4 h-4" />
-                    Watch Video & Study
+                    Watch Video & Study ({course.duration || 30}m)
                   </button>
                 )}
                 

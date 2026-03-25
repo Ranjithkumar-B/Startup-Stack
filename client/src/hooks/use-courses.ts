@@ -16,7 +16,7 @@ export function useCourses() {
 export function useCreateCourse() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (courseData: { title: string; description: string; videoUrl?: string }) => {
+    mutationFn: async (courseData: { title: string; description: string; videoUrl?: string; duration?: number }) => {
       const data = await fetchApi(api.courses.create.path, {
         method: "POST",
         body: JSON.stringify(courseData),
@@ -35,6 +35,21 @@ export function useDeleteCourse() {
     mutationFn: async (id: number) => {
       const data = await fetchApi(`/api/courses/${id}`, {
         method: "DELETE",
+      });
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.courses.list.path] });
+    },
+  });
+}
+export function useUpdateCourse() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, courseData }: { id: number; courseData: { title?: string; description?: string; videoUrl?: string; duration?: number } }) => {
+      const data = await fetchApi(`/api/courses/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(courseData),
       });
       return data;
     },

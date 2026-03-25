@@ -8,7 +8,7 @@ export interface Notification {
   type: "info" | "success" | "warning";
   timestamp: Date;
   read: boolean;
-  intendedRole?: "student" | "instructor" | "admin" | "all";
+  intendedRole?: "student" | "faculty" | "admin" | "all";
 }
 
 interface NotificationContextType {

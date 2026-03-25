@@ -42,26 +42,26 @@ export default function StudentsPage() {
   });
 
   const { data: students = [], isLoading } = useQuery({
-    queryKey: ["/api/instructor/students"],
+    queryKey: ["/api/faculty/students"],
     queryFn: async () => {
       if (user?.role === "admin") {
         const response = await apiClient.get("/api/admin/students");
         return Array.isArray(response.data) ? response.data : [];
       }
-      const response = await apiClient.get("/api/instructor/students");
+      const response = await apiClient.get("/api/faculty/students");
       return Array.isArray(response.data) ? response.data : [];
     },
-    enabled: !!user && (user.role === 'instructor' || user.role === 'admin')
+    enabled: !!user && (user.role === 'faculty' || user.role === 'admin')
   });
 
   const selectedStudent = students.find((s: any) => s.id === selectedStudentId);
 
   const addStudentMutation = useMutation({
     mutationFn: async (data: { name: string, email: string }) => {
-      await apiClient.post("/api/instructor/add-student", data);
+      await apiClient.post("/api/faculty/add-student", data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/instructor/students"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/faculty/students"] });
       queryClient.invalidateQueries({ queryKey: ["/api/analytics/leaderboard"] });
       queryClient.invalidateQueries({ queryKey: ["/api/analytics/dashboard"] });
       toast({ title: "Student added", description: "The student has been successfully enrolled." });
@@ -81,10 +81,10 @@ export default function StudentsPage() {
 
   const deleteStudentMutation = useMutation({
     mutationFn: async (id: number) => {
-      await apiClient.delete(`/api/instructor/students/${id}`);
+      await apiClient.delete(`/api/faculty/students/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/instructor/students"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/faculty/students"] });
       queryClient.invalidateQueries({ queryKey: ["/api/analytics/leaderboard"] });
       queryClient.invalidateQueries({ queryKey: ["/api/analytics/dashboard"] });
       toast({ title: "Student removed", description: "The student has been successfully deleted." });
@@ -126,7 +126,7 @@ export default function StudentsPage() {
           <h1 className="text-3xl font-display font-bold text-foreground mb-2">Student Directory</h1>
           <p className="text-muted-foreground text-lg">Manage your enrolled students and monitor their overall performance.</p>
         </div>
-        {user?.role === "instructor" && (
+        {user?.role === "faculty" && (
           <button 
             onClick={() => setShowAddModal(!showAddModal)}
             className="px-6 py-3 bg-primary text-white font-bold rounded-2xl flex items-center gap-2 mui-shadow hover:-translate-y-0.5 transition-all shadow-primary/30"
@@ -215,7 +215,7 @@ export default function StudentsPage() {
                      View Details
                    </button>
                   
-                  {user?.role === "instructor" && (
+                  {user?.role === "faculty" && (
                     <button 
                       onClick={() => handleDeleteStudent(student.id, student.name)}
                       disabled={deleteStudentMutation.isPending}

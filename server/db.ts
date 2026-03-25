@@ -1,10 +1,13 @@
-import { drizzle } from "drizzle-orm/better-sqlite3";
-import Database from "better-sqlite3";
-import * as schema from "@shared/schema";
-import path from "path";
+import mongoose from 'mongoose';
 
-const dataDir = process.env.DATA_DIR || process.cwd();
-const dbPath = path.resolve(dataDir, "sqlite.db");
-const sqlite = new Database(dbPath);
+const MONGODB_URI = "mongodb+srv://ranjith81518_db_user:aehobjNTWGsByNMb@cluster0.drceqjj.mongodb.net/?appName=Cluster0";
 
-export const db = drizzle(sqlite, { schema });
+export async function connectDB() {
+  try {
+    await mongoose.connect(MONGODB_URI, { serverSelectionTimeoutMS: 5000, family: 4 });
+    console.log("MongoDB connected successfully");
+  } catch (error) {
+    console.error("MongoDB connection error:", error);
+    process.exit(1);
+  }
+}

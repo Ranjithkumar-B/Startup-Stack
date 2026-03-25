@@ -3,11 +3,12 @@ import { api, buildUrl } from "@shared/routes";
 import { fetchApi } from "@/lib/api-client";
 import { z } from "zod";
 
-export function useStudentEngagement(studentId: number) {
+export function useStudentEngagement(studentId: number, range: string = '7') {
   return useQuery({
-    queryKey: [api.engagement.student.path, studentId],
+    queryKey: [api.engagement.student.path, studentId, range],
     queryFn: async () => {
-      const url = buildUrl(api.engagement.student.path, { id: studentId });
+      let url = buildUrl(api.engagement.student.path, { id: studentId });
+      url += `?range=${range}`;
       const data = await fetchApi(url);
       return data;
     },

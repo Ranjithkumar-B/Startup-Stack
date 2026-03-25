@@ -53,7 +53,7 @@ export default function WatchCourse({ params }: { params: { courseId: string } }
       await logEngagement({
         courseId,
         eventType: "video_watch",
-        duration: 30,
+        duration: course.duration || 30,
       });
       toast({
         title: "Video Completed! 🎉",
@@ -69,7 +69,7 @@ export default function WatchCourse({ params }: { params: { courseId: string } }
         "Student Engagement", 
         `${user?.name || "A student"} completed watching the video for "${course.title}".`,
         "info",
-        "instructor"
+        "faculty"
       );
     } catch (err: any) {
       toast({
@@ -140,7 +140,7 @@ export default function WatchCourse({ params }: { params: { courseId: string } }
           <div className="text-center p-16 border-2 border-dashed rounded-3xl border-border bg-muted/20">
             <ShieldCheck className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-xl font-bold mb-2">No Video Available</h3>
-            <p className="text-muted-foreground">The instructor has not uploaded a video for this course yet.</p>
+            <p className="text-muted-foreground">The faculty has not uploaded a video for this course yet.</p>
           </div>
         )}
       </div>

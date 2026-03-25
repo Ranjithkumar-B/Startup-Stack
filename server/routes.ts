@@ -6,13 +6,12 @@ import { api } from "@shared/routes";
 import { z } from "zod";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
-import { eq, inArray } from "drizzle-orm";
-import { db } from "./db";
-import { users, instructorStudents, tasks, taskSubmissions, enrollments, courses } from "@shared/schema";
+import { TaskModel, TaskSubmissionModel, UserModel, EnrollmentModel, FacultyStudentModel, QuizModel, CourseModel } from "./models";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
 import express from "express";
+import { format, subDays, eachDayOfInterval, isSameDay } from "date-fns";
 
 const dataDir = process.env.DATA_DIR || process.cwd();
 const uploadDir = path.join(dataDir, "uploads");
@@ -27,7 +26,22 @@ const storageEngine = multer.diskStorage({
     cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
   }
 });
-const upload = multer({ storage: storageEngine });
+
+const upload = multer({ 
+  storage: storageEngine,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  fileFilter: (req, file, cb) => {
+    const filetypes = /pdf/;
+    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = filetypes.test(file.mimetype);
+
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Only PDF files are allowed!'));
+    }
+  }
+});
 
 const JWT_SECRET = process.env.SESSION_SECRET || "fallback_secret_for_jwt_auth_123";
 
@@ -126,6 +140,12 @@ export async function registerRoutes(
       if (!isValid) {
         return res.status(401).json({ message: "Invalid credentials" });
       }
+
+      if (input.role && user.role !== input.role) {
+        return res.status(403).json({ 
+          message: `This account is registered as a ${user.role}. Please log in through the correct workspace.` 
+        });
+      }
       const token = jwt.sign({ id: user.id, role: user.role, email: user.email }, JWT_SECRET, { expiresIn: "7d" });
       if (user.role === 'student') {
         const recentEvents = await storage.getStudentEvents(user.id);
@@ -167,11 +187,12 @@ export async function registerRoutes(
 
   // Courses
   app.get(api.courses.list.path, requireAuth, async (req, res) => {
+    console.log(`[GET /api/courses] User ID: ${req.user.id}, Role: ${req.user.role}`);
     let result = [];
     if (req.user.role === 'student') {
       result = await storage.getEnrolledCourses(req.user.id);
-    } else if (req.user.role === 'instructor') {
-      result = await storage.getCoursesByInstructor(req.user.id);
+    } else if (req.user.role === 'faculty') {
+      result = await storage.getCoursesByFaculty(req.user.id);
     } else {
       result = await storage.getCourses();
     }
@@ -179,18 +200,19 @@ export async function registerRoutes(
   });
 
   app.post(api.courses.create.path, requireAuth, async (req, res) => {
-    if (req.user.role !== 'instructor' && req.user.role !== 'admin') {
+    if (req.user.role !== 'faculty' && req.user.role !== 'admin') {
       return res.status(403).json({ message: "Forbidden" });
     }
     try {
-      const students = await storage.getStudentsByInstructor(req.user.id);
+      const students = await storage.getStudentsByFaculty(req.user.id);
       
       const input = api.courses.create.input.parse(req.body);
       const { videoUrl, ...rest } = input;
       const course = await storage.createCourse({ 
         ...rest, 
         videoUrl: videoUrl || null,
-        instructorId: req.user.id 
+        duration: input.duration ?? 0,
+        facultyId: req.user.id 
       });
       
       if (students.length > 0) {
@@ -203,16 +225,38 @@ export async function registerRoutes(
     }
   });
 
-  app.delete('/api/courses/:id', requireAuth, async (req, res) => {
-    if (req.user.role !== 'instructor' && req.user.role !== 'admin') {
+  app.put('/api/courses/:id', requireAuth, async (req, res) => {
+    if (req.user.role !== 'faculty' && req.user.role !== 'admin') {
       return res.status(403).json({ message: "Forbidden" });
     }
     try {
       const courseId = Number(req.params.id);
       
-      // If instructor, verify they own the course
-      if (req.user.role === 'instructor') {
-        const courses = await storage.getCoursesByInstructor(req.user.id);
+      if (req.user.role === 'faculty') {
+        const courses = await storage.getCoursesByFaculty(req.user.id);
+        if (!courses.find(c => c.id === courseId)) {
+          return res.status(403).json({ message: "Forbidden" });
+        }
+      }
+      
+      const input = api.courses.create.input.partial().parse(req.body);
+      const course = await storage.updateCourse(courseId, input);
+      res.json(course);
+    } catch (err) {
+      res.status(400).json({ message: "Invalid input or course not found" });
+    }
+  });
+
+  app.delete('/api/courses/:id', requireAuth, async (req, res) => {
+    if (req.user.role !== 'faculty' && req.user.role !== 'admin') {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+    try {
+      const courseId = Number(req.params.id);
+      
+      // If faculty, verify they own the course
+      if (req.user.role === 'faculty') {
+        const courses = await storage.getCoursesByFaculty(req.user.id);
         if (!courses.find(c => c.id === courseId)) {
           return res.status(403).json({ message: "Forbidden" });
         }
@@ -249,7 +293,7 @@ export async function registerRoutes(
   });
 
   app.post('/api/courses/:id/quizzes', requireAuth, async (req, res) => {
-    if (req.user.role !== 'instructor' && req.user.role !== 'admin') {
+    if (req.user.role !== 'faculty' && req.user.role !== 'admin') {
       return res.status(403).json({ message: "Forbidden" });
     }
     const courseId = Number(req.params.id);
@@ -263,7 +307,7 @@ export async function registerRoutes(
   });
 
   app.delete('/api/quizzes/:id', requireAuth, async (req, res) => {
-    if (req.user.role !== 'instructor' && req.user.role !== 'admin') {
+    if (req.user.role !== 'faculty' && req.user.role !== 'admin') {
       return res.status(403).json({ message: "Forbidden" });
     }
     try {
@@ -294,7 +338,7 @@ export async function registerRoutes(
   });
 
   app.post('/api/quizzes/:id/questions', requireAuth, async (req, res) => {
-    if (req.user.role !== 'instructor' && req.user.role !== 'admin') {
+    if (req.user.role !== 'faculty' && req.user.role !== 'admin') {
       return res.status(403).json({ message: "Forbidden" });
     }
     const quizId = Number(req.params.id);
@@ -395,29 +439,55 @@ export async function registerRoutes(
     }
     
     const events = await storage.getStudentEvents(studentId);
-    let score = 0;
-    
+    const enrollments = await EnrollmentModel.find({ studentId }).lean();
+    const enrolledCourseIds = enrollments.map(e => e.courseId);
+    const enrolledCourses = await CourseModel.find({ _id: { $in: enrolledCourseIds } }).lean();
+
+    let rawPoints = 0;
     events.forEach(event => {
-       if (event.eventType === 'login') score += 2;
-       else if (event.eventType === 'video_watch') score += 3;
-       else if (event.eventType === 'quiz_submit') score += 10;
-       else if (event.eventType === 'assignment_submit') score += 8;
+       if (event.eventType === 'login') rawPoints += 2;
+       else if (event.eventType === 'video_watch') rawPoints += (event.duration || 0);
+       else if (event.eventType === 'quiz_complete') rawPoints += 10;
+       else if (event.eventType === 'assignment_submit') rawPoints += 8;
     });
-    score = Math.round(score);
+
+    let possiblePoints = 2; // Baseline
+    for (const course of enrolledCourses) {
+       possiblePoints += (course.duration || 0);
+       const taskCount = await TaskModel.countDocuments({ courseId: course._id });
+       const quizCount = await QuizModel.countDocuments({ courseId: course._id });
+       possiblePoints += (taskCount * 8) + (quizCount * 10);
+    }
+
+    const score = Math.round((rawPoints / Math.max(possiblePoints, 1)) * 100);
     
     const streak = events.length > 0 ? 3 : 0;
     const hours = (events.reduce((acc, curr) => acc + (curr.duration || 0), 0) / 60).toFixed(1);
     
-    const enrolledCourses = await storage.getEnrolledCourses(studentId);
     const courses = enrolledCourses.length;
     
-    const history = [
-      { name: 'Mon', score: Math.max(0, score - 20) },
-      { name: 'Tue', score: Math.max(0, score - 15) },
-      { name: 'Wed', score: Math.max(0, score - 10) },
-      { name: 'Thu', score: Math.max(0, score - 5) },
-      { name: 'Fri', score: score },
-    ];
+    // Dynamic history calculation
+    const rangeParam = req.query.range as string;
+    const range = rangeParam === '30' ? 30 : 7;
+    const end = new Date();
+    const start = subDays(end, range - 1);
+    
+    const days = eachDayOfInterval({ start, end });
+    const history = days.map(day => {
+      const dayEvents = events.filter(e => e.timestamp && isSameDay(new Date(e.timestamp), day));
+      let dayScore = 0;
+      dayEvents.forEach(e => {
+        if (e.eventType === 'login') dayScore += 2;
+        else if (e.eventType === 'video_watch') dayScore += (e.duration || 0);
+        else if (e.eventType === 'quiz_submit') dayScore += 10;
+        else if (e.eventType === 'assignment_submit') dayScore += 8;
+      });
+      return {
+        name: format(day, range === 7 ? "EEE" : "MMM dd"),
+        fullDate: format(day, "MMM dd"),
+        score: dayScore
+      };
+    });
 
     const breakdown = {
       logins: events.filter(e => e.eventType === 'login').length,
@@ -426,18 +496,15 @@ export async function registerRoutes(
       assignments: events.filter(e => e.eventType === 'assignment_submit').length,
     };
 
-    let instructorName = null;
-    const [instructorLink] = await db.select()
-      .from(instructorStudents)
-      .where(eq(instructorStudents.studentId, studentId))
-      .limit(1);
+    let facultyName = null;
+    const facultyLink = await FacultyStudentModel.findOne({ studentId }).lean();
       
-    if (instructorLink) {
-       const [instructorUser] = await db.select().from(users).where(eq(users.id, instructorLink.instructorId));
-       if (instructorUser) { instructorName = instructorUser.name; }
+    if (facultyLink) {
+       const facultyUser = await UserModel.findById(facultyLink.facultyId).lean();
+       if (facultyUser) { facultyName = facultyUser.name; }
     }
 
-    res.json({ score, hours, courses, streak, history, recentEvents: events.slice(0, 5), breakdown, instructorName });
+    res.json({ score, hours, courses, streak, history, recentEvents: events.slice(0, 5), breakdown, facultyName });
   });
 
   app.get('/api/analytics/course/:id', requireAuth, async (req, res) => {
@@ -459,9 +526,9 @@ export async function registerRoutes(
         { name: 'Fri', logins: stats.totalEvents },
       ];
       res.json({ ...stats, systemTrend });
-    } else if (req.user.role === 'instructor') {
-      const students = await storage.getStudentsByInstructor(req.user.id);
-      const courses = await storage.getCoursesByInstructor(req.user.id);
+    } else if (req.user.role === 'faculty') {
+      const students = await storage.getStudentsByFaculty(req.user.id);
+      const courses = await storage.getCoursesByFaculty(req.user.id);
       
       const totalStudents = students.length;
       const activeCourses = courses.length;
@@ -519,13 +586,13 @@ export async function registerRoutes(
     }
   });
 
-  // Instructor student management
-  app.get('/api/instructor/students', requireAuth, async (req, res) => {
-    if (req.user.role !== 'instructor') {
-      return res.status(403).json({ message: "Only instructors can manage students" });
+  // Faculty student management
+  app.get('/api/faculty/students', requireAuth, async (req, res) => {
+    if (req.user.role !== 'faculty') {
+      return res.status(403).json({ message: "Only faculty can manage students" });
     }
     try {
-      const students = await storage.getStudentsByInstructor(req.user.id);
+      const students = await storage.getStudentsByFaculty(req.user.id);
       res.json(students);
     } catch (err) {
       res.status(500).json({ message: "Failed to load students" });
@@ -544,9 +611,9 @@ export async function registerRoutes(
     }
   });
 
-  app.post('/api/instructor/add-student', requireAuth, async (req, res) => {
-    if (req.user.role !== 'instructor') {
-      return res.status(403).json({ message: "Only instructors can add students" });
+  app.post('/api/faculty/add-student', requireAuth, async (req, res) => {
+    if (req.user.role !== 'faculty') {
+      return res.status(403).json({ message: "Only faculty can add students" });
     }
     try {
       const { email, name } = req.body;
@@ -566,11 +633,11 @@ export async function registerRoutes(
         });
       }
 
-      await storage.linkInstructorStudent(req.user.id, student.id);
+      await storage.linkFacultyStudent(req.user.id, student.id);
 
-      const courses = await storage.getCoursesByInstructor(req.user.id);
+      const courses = await storage.getCoursesByFaculty(req.user.id);
       if (courses.length > 0) {
-        await Promise.all(courses.map(c => storage.enrollStudent(student.id, c.id)));
+        await Promise.all(courses.map((c: any) => storage.enrollStudent(student.id, c.id)));
       }
 
       res.status(201).json({ message: "Student added successfully", student: { id: student.id, name: student.name, email: student.email } });
@@ -579,13 +646,13 @@ export async function registerRoutes(
     }
   });
 
-  app.delete('/api/instructor/students/:id', requireAuth, async (req, res) => {
-    if (req.user.role !== 'instructor') {
-      return res.status(403).json({ message: "Only instructors can remove students" });
+  app.delete('/api/faculty/students/:id', requireAuth, async (req, res) => {
+    if (req.user.role !== 'faculty') {
+      return res.status(403).json({ message: "Only faculty can remove students" });
     }
     try {
       const studentId = Number(req.params.id);
-      await storage.removeStudentFromInstructor(req.user.id, studentId);
+      await storage.removeStudentFromFaculty(req.user.id, studentId);
       res.json({ message: "Student removed successfully" });
     } catch (err) {
       res.status(500).json({ message: "Failed to remove student" });
@@ -595,18 +662,18 @@ export async function registerRoutes(
   // --- TASKS API ---
   app.get('/api/tasks', requireAuth, async (req, res) => {
     try {
-      if (req.user.role === 'instructor') {
-        const instCourses = await storage.getCoursesByInstructor(req.user.id);
+      if (req.user.role === 'faculty') {
+        const instCourses = await storage.getCoursesByFaculty(req.user.id);
         if (instCourses.length === 0) return res.json([]);
-        const cIds = instCourses.map(c => c.id);
-        const instTasks = await db.select().from(tasks).where(inArray(tasks.courseId, cIds));
-        res.json(instTasks);
+        const cIds = instCourses.map((c: any) => c.id);
+        const instTasks = await TaskModel.find({ courseId: { $in: cIds } }).lean();
+        res.json(instTasks.map(t => ({ ...t, id: t._id })));
       } else if (req.user.role === 'student') {
-        const enr = await db.select().from(enrollments).where(eq(enrollments.studentId, req.user.id));
+        const enr = await EnrollmentModel.find({ studentId: req.user.id }).lean();
         if (enr.length === 0) return res.json([]);
         const cIds = enr.map(e => e.courseId);
-        const stTasks = await db.select().from(tasks).where(inArray(tasks.courseId, cIds));
-        res.json(stTasks);
+        const stTasks = await TaskModel.find({ courseId: { $in: cIds } }).lean();
+        res.json(stTasks.map(t => ({ ...t, id: t._id })));
       } else {
         res.json([]);
       }
@@ -616,43 +683,59 @@ export async function registerRoutes(
   });
 
   app.get('/api/tasks/submissions', requireAuth, async (req, res) => {
-    if (req.user.role !== 'instructor') return res.status(403).json({ message: "Instructor only" });
+    if (req.user.role !== 'faculty') return res.status(403).json({ message: "Faculty only" });
     try {
-      const instCourses = await storage.getCoursesByInstructor(req.user.id);
+      const instCourses = await storage.getCoursesByFaculty(req.user.id);
       if (instCourses.length === 0) return res.json([]);
-      const cIds = instCourses.map(c => c.id);
+      const cIds = instCourses.map((c: any) => c.id);
       
-      const teacherTasks = await db.select({ id: tasks.id }).from(tasks).where(inArray(tasks.courseId, cIds));
+      const teacherTasks = await TaskModel.find({ courseId: { $in: cIds } }).lean();
       if (teacherTasks.length === 0) return res.json([]);
-      const taskIds = teacherTasks.map(t => t.id);
+      const taskIds = teacherTasks.map(t => t._id);
       
-      const subs = await db.select({
-        id: taskSubmissions.id,
-        taskId: taskSubmissions.taskId,
-        pdfUrl: taskSubmissions.pdfUrl,
-        submittedAt: taskSubmissions.submittedAt,
-        studentName: users.name
-      })
-      .from(taskSubmissions)
-      .innerJoin(users, eq(users.id, taskSubmissions.studentId))
-      .where(inArray(taskSubmissions.taskId, taskIds));
-      
-      res.json(subs);
+      const subs = await TaskSubmissionModel.find({ taskId: { $in: taskIds } }).lean();
+      const studentIds = subs.map(s => s.studentId);
+      const students = await UserModel.find({ _id: { $in: studentIds } }).lean();
+
+      res.json(subs.map(s => {
+        const student = students.find(u => u._id === s.studentId);
+        return {
+          id: s._id,
+          taskId: s.taskId,
+          pdfUrl: s.pdfUrl,
+          submittedAt: s.submittedAt,
+          studentName: student ? student.name : 'Unknown',
+          grade: s.grade,
+          feedback: s.feedback
+        };
+      }));
     } catch (err) {
       res.status(500).json({ message: "Failed to fetch submissions" });
     }
   });
 
   app.post('/api/tasks', requireAuth, async (req, res) => {
-    if (req.user.role !== 'instructor') return res.status(403).json({ message: "Instructor only" });
+    if (req.user.role !== 'faculty') return res.status(403).json({ message: "Faculty only" });
     try {
       const { courseId, title, description } = req.body;
-      const [newTask] = await db.insert(tasks).values({
-        courseId, title, description
-      }).returning();
-      res.status(201).json(newTask);
+      const newTask = await TaskModel.create({ courseId, title, description });
+      const t = newTask.toObject();
+      res.status(201).json({ ...t, id: t._id });
     } catch (err) {
       res.status(500).json({ message: "Failed to create task" });
+    }
+  });
+
+  app.patch('/api/tasks/:id', requireAuth, async (req, res) => {
+    if (req.user.role !== 'faculty') return res.status(403).json({ message: "Faculty only" });
+    try {
+      const taskId = Number(req.params.id);
+      const { title, description, courseId } = req.body;
+      const updated = await TaskModel.findByIdAndUpdate(taskId, { title, description, courseId }, { new: true }).lean();
+      if (!updated) return res.status(404).json({ message: "Task not found" });
+      res.json({ ...updated, id: updated._id });
+    } catch (err) {
+      res.status(500).json({ message: "Failed to update task" });
     }
   });
 
@@ -670,11 +753,9 @@ export async function registerRoutes(
         return res.status(400).json({ message: "PDF file is required" });
       }
 
-      const [newSub] = await db.insert(taskSubmissions).values({
-        taskId, studentId: req.user.id, pdfUrl
-      }).returning();
+      const newSub = await TaskSubmissionModel.create({ taskId, studentId: req.user.id, pdfUrl });
       
-      const [taskReq] = await db.select().from(tasks).where(eq(tasks.id, taskId));
+      const taskReq = await TaskModel.findById(taskId).lean();
       if (taskReq) {
         await storage.logEvent({
           studentId: req.user.id,
@@ -683,23 +764,40 @@ export async function registerRoutes(
           duration: 30
         });
       }
-      res.status(201).json(newSub);
+      const s = newSub.toObject();
+      res.status(201).json({ ...s, id: s._id });
     } catch (err) {
       console.error("Upload Error:", err);
       res.status(500).json({ message: "Failed to submit task" });
     }
   });
 
+  app.post('/api/tasks/submissions/:id/grade', requireAuth, async (req, res) => {
+    if (req.user.role !== 'faculty') return res.status(403).json({ message: "Faculty only" });
+    try {
+      const submissionId = Number(req.params.id);
+      const { grade, feedback } = req.body;
+      
+      const sub = await TaskSubmissionModel.findByIdAndUpdate(submissionId, { 
+        grade, 
+        feedback 
+      }, { new: true }).lean();
+
+      if (!sub) return res.status(404).json({ message: "Submission not found" });
+      
+      res.json({ ...sub, id: sub._id });
+    } catch (err) {
+      res.status(500).json({ message: "Failed to grade submission" });
+    }
+  });
+
   app.delete('/api/tasks/:id', requireAuth, async (req, res) => {
-    if (req.user.role !== 'instructor') return res.status(403).json({ message: "Instructor only" });
+    if (req.user.role !== 'faculty') return res.status(403).json({ message: "Faculty only" });
     try {
       const taskId = Number(req.params.id);
       
-      // Delete submissions first (foreign key integrity)
-      await db.delete(taskSubmissions).where(eq(taskSubmissions.taskId, taskId));
-      
-      // Delete the actual task
-      await db.delete(tasks).where(eq(tasks.id, taskId));
+      await TaskSubmissionModel.deleteMany({ taskId });
+      await TaskModel.findByIdAndDelete(taskId);
       
       res.json({ message: "Task deleted successfully" });
     } catch (err) {

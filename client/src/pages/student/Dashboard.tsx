@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useStudentEngagement } from "@/hooks/use-engagement";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -7,7 +8,8 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 
 export default function StudentDashboard() {
   const { user } = useAuth();
-  const { data: engagement, isLoading } = useStudentEngagement(user?.id || 0);
+  const [range, setRange] = useState("7");
+  const { data: engagement, isLoading } = useStudentEngagement(user?.id || 0, range);
 
   if (isLoading) {
     return (
@@ -31,9 +33,9 @@ export default function StudentDashboard() {
       <div className="mb-8">
         <h1 className="text-3xl font-display font-bold text-foreground mb-2">Welcome back, {user?.name.split(' ')[0]} 👋</h1>
         <p className="text-muted-foreground text-lg mb-1">Here's your engagement overview for this week.</p>
-        {engagement?.instructorName && (
+        {engagement?.facultyName && (
            <p className="text-sm font-semibold text-primary/80 uppercase tracking-widest mt-2 bg-primary/10 inline-block px-3 py-1 rounded-full border border-primary/20">
-             Instructor: {engagement.instructorName}
+             Faculty: {engagement.facultyName}
            </p>
         )}
       </div>
@@ -71,9 +73,13 @@ export default function StudentDashboard() {
         <div className="lg:col-span-2 bg-card rounded-2xl p-6 mui-shadow border border-border">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-display font-bold">Engagement Trend</h2>
-            <select className="bg-muted border-none rounded-lg px-3 py-1.5 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none">
-              <option>Last 7 Days</option>
-              <option>Last 30 Days</option>
+            <select 
+              value={range}
+              onChange={(e) => setRange(e.target.value)}
+              className="bg-muted border-none rounded-lg px-3 py-1.5 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none"
+            >
+              <option value="7">Last 7 Days</option>
+              <option value="30">Last 30 Days</option>
             </select>
           </div>
           <div className="h-72 w-full">

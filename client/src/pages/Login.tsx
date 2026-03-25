@@ -6,7 +6,7 @@ import { BookOpen, ArrowRight, Loader2, Users, GraduationCap } from "lucide-reac
 export default function Login() {
   const [_, setLocation] = useLocation();
   const { login, isLoggingIn } = useAuth();
-  const [userType, setUserType] = useState<"student" | "teacher" | null>(null);
+  const [userType, setUserType] = useState<"student" | "faculty" | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -15,7 +15,7 @@ export default function Login() {
     e.preventDefault();
     setError("");
     try {
-      const res = await login({ email, password });
+      const res = await login({ email, password, role: userType! });
       setLocation(`/${res.user.role}`);
     } catch (err: any) {
       setError(err.message || "Invalid credentials");
@@ -60,9 +60,9 @@ export default function Login() {
               </p>
             </button>
 
-            {/* Teacher Login */}
+            {/* Faculty Login */}
             <button
-              onClick={() => setUserType("teacher")}
+              onClick={() => setUserType("faculty")}
               className="p-10 md:p-12 bg-white/[0.03] backdrop-blur-2xl rounded-[2.5rem] border border-white/[0.08] hover:border-accent/50 hover:bg-white/[0.05] hover:shadow-[0_0_80px_-20px_rgba(var(--accent),0.3)] transition-all duration-500 active:scale-[0.98] group cursor-pointer flex flex-col items-center text-center relative overflow-hidden animate-in fade-in slide-in-from-bottom-12 delay-300"
             >
               <div className="absolute inset-0 bg-gradient-to-br from-accent/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
@@ -70,7 +70,7 @@ export default function Login() {
               <div className="w-24 h-24 rounded-[2rem] bg-accent/10 flex items-center justify-center mb-8 group-hover:bg-accent/20 group-hover:scale-110 transition-all duration-500 relative z-10 ring-1 ring-white/10 group-hover:ring-accent/50">
                 <Users className="w-12 h-12 text-accent group-hover:text-white transition-colors duration-300" />
               </div>
-              <h2 className="text-3xl font-display font-bold text-white mb-4 relative z-10">Instructor</h2>
+              <h2 className="text-3xl font-display font-bold text-white mb-4 relative z-10">Faculty</h2>
               <p className="text-white/50 text-base leading-relaxed relative z-10 max-w-xs">
                 Manage your curriculums, monitor analytics, and evaluate student success
               </p>
@@ -101,10 +101,17 @@ export default function Login() {
               Monitor engagement. <br/>Drive success.
             </h1>
             <p className="text-white/80 text-lg max-w-sm font-light">
-              The complete platform for tracking student participation and course analytics.
+              Sign in to your {userType === 'faculty' ? 'faculty' : 'student'} workspace to continue.
             </p>
           </div>
           
+          <div className="relative mb-2 flex items-center gap-3 px-4 py-2 bg-white/5 border border-white/10 rounded-2xl w-fit">
+            <div className={`w-2 h-2 rounded-full ${userType === 'faculty' ? 'bg-accent animate-pulse' : 'bg-primary animate-pulse'}`} />
+            <span className="text-xs font-bold uppercase tracking-widest text-white/70">
+              {userType === 'faculty' ? 'Faculty Mode' : 'Student Mode'}
+            </span>
+          </div>
+
           <div className="relative z-10 bg-black/20 backdrop-blur-xl p-6 rounded-2xl border border-white/10 mt-12">
             <p className="italic text-sm mb-4 leading-relaxed font-light text-white/90">"This platform transformed how I identify struggling students before they fall behind."</p>
           </div>
@@ -122,7 +129,7 @@ export default function Login() {
 
             <div className="mb-10 text-center md:text-left animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
               <h2 className="text-3xl lg:text-4xl font-display font-bold text-white mb-3">
-                Welcome back{userType === "teacher" ? ", Teacher" : ""}
+                Welcome back{userType === "faculty" ? ", Faculty" : ""}
               </h2>
               <p className="text-white/50">Sign in to securely access your workspace</p>
             </div>

@@ -10,7 +10,7 @@ import NotFound from "@/pages/not-found";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import StudentDashboard from "@/pages/student/Dashboard";
-import InstructorDashboard from "@/pages/instructor/Dashboard";
+import FacultyDashboard from "@/pages/instructor/Dashboard";
 import AdminDashboard from "@/pages/admin/Dashboard";
 import CourseList from "@/pages/courses/CourseList";
 import StudentList from "@/pages/students/StudentList";
@@ -82,8 +82,8 @@ function Router() {
       <Route path="/student">
         {() => <ProtectedRoute component={StudentDashboard} allowedRoles={["student"]} />}
       </Route>
-      <Route path="/instructor">
-        {() => <ProtectedRoute component={InstructorDashboard} allowedRoles={["instructor", "admin"]} />}
+      <Route path="/faculty">
+        {() => <ProtectedRoute component={FacultyDashboard} allowedRoles={["faculty", "admin"]} />}
       </Route>
       <Route path="/admin">
         {() => <ProtectedRoute component={AdminDashboard} allowedRoles={["admin"]} />}
@@ -110,7 +110,7 @@ function Router() {
       </Route>
 
       <Route path="/students">
-        {() => <ProtectedRoute component={StudentList} allowedRoles={["instructor", "admin"]} />}
+        {() => <ProtectedRoute component={StudentList} allowedRoles={["faculty", "admin"]} />}
       </Route>
       <Route path="/activity">
         {() => <ProtectedRoute component={SystemActivity} allowedRoles={["admin"]} />}

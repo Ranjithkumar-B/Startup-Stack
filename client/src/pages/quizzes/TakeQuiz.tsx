@@ -22,7 +22,7 @@ export default function TakeQuiz({ params }: { params: { courseId: string, quizI
   const [opts, setOpts] = useState(["", "", "", ""]);
   const [correctIdx, setCorrectIdx] = useState(0);
 
-  const isInstructor = user?.role === "instructor" || user?.role === "admin";
+  const isFaculty = user?.role === "faculty" || user?.role === "admin";
 
   const handleCreateQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,7 +47,7 @@ export default function TakeQuiz({ params }: { params: { courseId: string, quizI
     await submitQuiz({ quizId, courseId, answers });
     
     addNotification("Quiz Submitted", "Your quiz answers have been submitted successfully.", "success", "student");
-    addNotification("Student Completed Quiz", `${user?.name || "A student"} has completed a quiz.`, "info", "instructor");
+    addNotification("Student Completed Quiz", `${user?.name || "A student"} has completed a quiz.`, "info", "faculty");
     
     setLocation(`/courses/${courseId}/quizzes`);
   };
@@ -69,7 +69,7 @@ export default function TakeQuiz({ params }: { params: { courseId: string, quizI
           <ChevronLeft className="w-5 h-5" /> Back to Quizzes
         </button>
         <h1 className="text-3xl font-display font-bold text-foreground mb-2">
-          {isInstructor ? "Manage Quiz Questions" : "Taking Quiz"}
+          {isFaculty ? "Manage Quiz Questions" : "Taking Quiz"}
         </h1>
       </div>
 
@@ -88,7 +88,7 @@ export default function TakeQuiz({ params }: { params: { courseId: string, quizI
                   return (
                     <button
                       key={optIdx}
-                      disabled={isInstructor}
+                      disabled={isFaculty}
                       onClick={() => handleOptionSelect(q.id, optIdx)}
                       className={`w-full p-4 rounded-xl border-2 text-left font-semibold transition-all flex items-center gap-4 ${isSelected ? "border-primary bg-primary/5 text-primary" : "border-border hover:border-primary/50 text-foreground"}`}
                     >
@@ -96,7 +96,7 @@ export default function TakeQuiz({ params }: { params: { courseId: string, quizI
                         {isSelected && <div className="w-2.5 h-2.5 bg-white rounded-full" />}
                       </div>
                       {opt}
-                      {isInstructor && q.correctOptionIndex === optIdx && (
+                      {isFaculty && q.correctOptionIndex === optIdx && (
                         <div className="ml-auto text-emerald-500 flex items-center gap-1.5 text-sm">
                           <CheckCircle2 className="w-4 h-4" /> Correct Answer
                         </div>
@@ -115,7 +115,7 @@ export default function TakeQuiz({ params }: { params: { courseId: string, quizI
           </div>
         )}
 
-        {!isInstructor && questions?.length > 0 && (
+        {!isFaculty && questions?.length > 0 && (
           <button
             onClick={handleSubmitQuiz}
             disabled={isSubmitting}
@@ -125,7 +125,7 @@ export default function TakeQuiz({ params }: { params: { courseId: string, quizI
           </button>
         )}
 
-        {isInstructor && !showAddQuestion && (
+        {isFaculty && !showAddQuestion && (
           <button
             onClick={() => setShowAddQuestion(true)}
             className="w-full py-4 border-2 border-dashed border-primary text-primary font-bold rounded-2xl text-lg hover:bg-primary/5 transition-colors flex justify-center items-center gap-2"
@@ -134,7 +134,7 @@ export default function TakeQuiz({ params }: { params: { courseId: string, quizI
           </button>
         )}
 
-        {isInstructor && showAddQuestion && (
+        {isFaculty && showAddQuestion && (
           <div className="bg-card p-6 rounded-2xl border border-border mui-shadow">
             <h3 className="text-xl font-bold mb-4">Add New Question</h3>
             <form onSubmit={handleCreateQuestion} className="space-y-4">
