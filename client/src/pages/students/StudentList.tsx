@@ -204,7 +204,7 @@ export default function StudentsPage() {
                     <div className="text-right">
                       <div className="text-sm font-semibold text-muted-foreground mb-1">Engagement Score</div>
                       <div className={`text-lg font-bold ${student.engagementScore >= 80 ? 'text-emerald-500' : student.engagementScore >= 50 ? 'text-yellow-500' : 'text-destructive'}`}>
-                        {student.engagementScore}/100
+                        {student.points}/{student.maxPoints || 100}
                       </div>
                     </div>
                   )}
@@ -263,7 +263,7 @@ export default function StudentsPage() {
                   <div className="bg-gradient-to-br from-primary to-primary/80 p-8 rounded-3xl text-white shadow-xl shadow-primary/20 flex justify-between items-center">
                     <div>
                       <p className="text-primary-foreground/80 font-bold uppercase tracking-widest text-xs mb-1">Total Points</p>
-                      <h3 className="text-5xl font-display font-black">{details.score}<span className="text-xl font-bold opacity-60 ml-2">pts</span></h3>
+                      <h3 className="text-5xl font-display font-black">{(details as any).points || 0}<span className="text-xl font-bold opacity-60 ml-2">/ {(details as any).maxPoints || 100} pts</span></h3>
                     </div>
                     <div className="bg-white/20 p-4 rounded-2xl backdrop-blur-md border border-white/20">
                       <TrendingUp className="w-10 h-10" />

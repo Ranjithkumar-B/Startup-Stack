@@ -6,6 +6,7 @@ import {
 import type { User, Course, Enrollment, EngagementEvent, Quiz, QuizQuestion, QuizSubmission } from "@shared/schema";
 import type { registerSchema, eventSchema } from "@shared/schema";
 import type { z } from "zod";
+import { differenceInDays } from "date-fns";
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -219,12 +220,31 @@ export class DatabaseStorage implements IStorage {
 
       // Dynamic possible points based on student's specific curriculum
       let possiblePoints = 2; // Baseline for daily login
+      
+      const facultyLink = await FacultyStudentModel.findOne({ studentId: student._id }).lean();
+      let referenceDate = student.createdAt || new Date();
+      
+      if (facultyLink) {
+          const classmates = await FacultyStudentModel.find({ facultyId: facultyLink.facultyId }).lean();
+          const classmateIds = classmates.map(c => c.studentId);
+          const earliestClassmate = await UserModel.findOne({ _id: { $in: classmateIds } }).sort({ createdAt: 1 }).lean();
+          if (earliestClassmate?.createdAt) {
+              referenceDate = earliestClassmate.createdAt;
+          }
+      }
+
+      const daysSinceCreation = differenceInDays(new Date(), new Date(referenceDate));
+      possiblePoints += (daysSinceCreation + 1) * 2; 
+
       for (const course of enrolledCourses) {
         possiblePoints += (course.duration || 0);
         const taskCount = await TaskModel.countDocuments({ courseId: course._id });
         const quizCount = await QuizModel.countDocuments({ courseId: course._id });
         possiblePoints += (taskCount * 8) + (quizCount * 10);
       }
+      
+      // Ensure total available points >= earned points
+      possiblePoints = Math.max(possiblePoints, rawPoints);
       
       const daysSet = new Set();
       events.forEach(e => {
@@ -276,12 +296,31 @@ export class DatabaseStorage implements IStorage {
 
       // Dynamic possible points
       let possiblePoints = 2; // Baseline
+      
+      const facultyLink = await FacultyStudentModel.findOne({ studentId: student._id }).lean();
+      let referenceDate = student.createdAt || new Date();
+      
+      if (facultyLink) {
+          const classmates = await FacultyStudentModel.find({ facultyId: facultyLink.facultyId }).lean();
+          const classmateIds = classmates.map(c => c.studentId);
+          const earliestClassmate = await UserModel.findOne({ _id: { $in: classmateIds } }).sort({ createdAt: 1 }).lean();
+          if (earliestClassmate?.createdAt) {
+              referenceDate = earliestClassmate.createdAt;
+          }
+      }
+
+      const daysSinceCreation = differenceInDays(new Date(), new Date(referenceDate));
+      possiblePoints += (daysSinceCreation + 1) * 2; 
+
       for (const course of enrolledCourses) {
         possiblePoints += (course.duration || 0);
         const taskCount = await TaskModel.countDocuments({ courseId: course._id });
         const quizCount = await QuizModel.countDocuments({ courseId: course._id });
         possiblePoints += (taskCount * 8) + (quizCount * 10);
       }
+      
+      // Ensure total available points >= earned points
+      possiblePoints = Math.max(possiblePoints, rawPoints);
       
       const daysSet = new Set();
       events.forEach(e => {
@@ -307,7 +346,7 @@ export class DatabaseStorage implements IStorage {
     let studentIds: number[] = [];
     if (role === 'faculty' && userId) {
       const mappings = await FacultyStudentModel.find({ facultyId: userId }).lean();
-      studentIds = [...new Set(mappings.map(m => m.studentId))];
+      studentIds = Array.from(new Set(mappings.map(m => m.studentId)));
     }
 
     const query = studentIds.length > 0 ? { _id: { $in: studentIds }, role: 'student' } : { role: 'student' };
@@ -329,12 +368,30 @@ export class DatabaseStorage implements IStorage {
 
       // Dynamic possible points
       let possiblePoints = 2; 
+      const facultyLink = await FacultyStudentModel.findOne({ studentId: student._id }).lean();
+      let referenceDate = student.createdAt || new Date();
+      
+      if (facultyLink) {
+          const classmates = await FacultyStudentModel.find({ facultyId: facultyLink.facultyId }).lean();
+          const classmateIds = classmates.map(c => c.studentId);
+          const earliestClassmate = await UserModel.findOne({ _id: { $in: classmateIds } }).sort({ createdAt: 1 }).lean();
+          if (earliestClassmate?.createdAt) {
+              referenceDate = earliestClassmate.createdAt;
+          }
+      }
+
+      const daysSinceCreation = differenceInDays(new Date(), new Date(referenceDate));
+      possiblePoints += (daysSinceCreation + 1) * 2; 
+
       for (const course of enrolledCourses) {
         possiblePoints += (course.duration || 0);
         const taskCount = await TaskModel.countDocuments({ courseId: course._id });
         const quizCount = await QuizModel.countDocuments({ courseId: course._id });
         possiblePoints += (taskCount * 8) + (quizCount * 10);
       }
+      
+      // Ensure total available points >= earned points
+      possiblePoints = Math.max(possiblePoints, rawPoints);
 
       const avatarLetters = (student.name || '').split(' ').map((n: any) => n[0]).join('').toUpperCase().substring(0, 2);
       const engagementScore = Math.round((rawPoints / Math.max(possiblePoints, 1)) * 100);
