@@ -32,7 +32,7 @@ export default function StudentDashboard() {
     <DashboardLayout>
       <div className="mb-8">
         <h1 className="text-3xl font-display font-bold text-foreground mb-2">Welcome back, {user?.name.split(' ')[0]} 👋</h1>
-        <p className="text-muted-foreground text-lg mb-1">Here's your engagement overview for this week.</p>
+        <p className="text-muted-foreground text-lg mb-1">Here's your engagement overviews.</p>
         {engagement?.facultyName && (
            <p className="text-sm font-semibold text-primary/80 uppercase tracking-widest mt-2 bg-primary/10 inline-block px-3 py-1 rounded-full border border-primary/20">
              Faculty: {engagement.facultyName}
