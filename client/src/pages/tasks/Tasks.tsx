@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
+import { useNotifications } from "@/hooks/use-notifications";
 import { useToast } from "@/hooks/use-toast";
 import { fetchApi } from "@/lib/api-client";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -9,6 +10,7 @@ import { useCourses } from "@/hooks/use-courses";
 
 export default function Tasks() {
   const { user } = useAuth();
+  const { addNotification } = useNotifications();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showAdd, setShowAdd] = useState(false);
@@ -93,10 +95,32 @@ export default function Tasks() {
       });
       return res;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/engagement/student"] });
       queryClient.invalidateQueries({ queryKey: ["/api/analytics/dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["/api/analytics/leaderboard"] });
+      
+      const task = tasks?.find((t: any) => t.id === variables.taskId);
+      const course = courses?.find((c: any) => c.id === task?.courseId);
+
+      addNotification(
+        "Task Submitted", 
+        `You've successfully submitted the project for "${task?.title || 'a topic'}" and earned points.`,
+        "success",
+        "student",
+        user?.id
+      );
+
+      if (course?.facultyId) {
+        addNotification(
+          "Student Submission", 
+          `${user?.name || "A student"} submitted a project for "${task?.title || 'a topic'}".`,
+          "info",
+          "faculty",
+          course.facultyId
+        );
+      }
+
       toast({ title: "Task submitted! Points awarded! 🎉" });
       setSubmittingTask(null);
       setPdfFile(null);

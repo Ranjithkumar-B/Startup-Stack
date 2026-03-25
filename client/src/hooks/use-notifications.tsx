@@ -9,12 +9,13 @@ export interface Notification {
   timestamp: Date;
   read: boolean;
   intendedRole?: "student" | "faculty" | "admin" | "all";
+  intendedUserId?: number | string;
 }
 
 interface NotificationContextType {
   notifications: Notification[];
   unreadCount: number;
-  addNotification: (title: string, message: string, type?: Notification["type"], intendedRole?: Notification["intendedRole"]) => void;
+  addNotification: (title: string, message: string, type?: Notification["type"], intendedRole?: Notification["intendedRole"], intendedUserId?: Notification["intendedUserId"]) => void;
   markAsRead: (id: string) => void;
   markAllAsRead: () => void;
   clearAll: () => void;
@@ -61,7 +62,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("storage", handleStorage);
   }, []);
 
-  const addNotification = (title: string, message: string, type: Notification["type"] = "info", intendedRole: Notification["intendedRole"] = "all") => {
+  const addNotification = (title: string, message: string, type: Notification["type"] = "info", intendedRole: Notification["intendedRole"] = "all", intendedUserId?: Notification["intendedUserId"]) => {
     const newNotification: Notification = {
       id: Math.random().toString(36).substr(2, 9),
       title,
@@ -69,7 +70,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       type,
       timestamp: new Date(),
       read: false,
-      intendedRole
+      intendedRole,
+      intendedUserId
     };
     setAllNotifications(prev => [newNotification, ...prev]);
   };
@@ -88,7 +90,14 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     ));
   };
 
-  const notifications = allNotifications.filter(n => n.intendedRole === "all" || n.intendedRole === user?.role);
+  const notifications = allNotifications.filter(n => {
+    // If targeted to a specific user, only show to that user
+    if (n.intendedUserId !== undefined) {
+      return String(n.intendedUserId) === String(user?.id);
+    }
+    // Otherwise show by role (keeping the 'all' compatibility)
+    return n.intendedRole === "all" || n.intendedRole === user?.role;
+  });
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (

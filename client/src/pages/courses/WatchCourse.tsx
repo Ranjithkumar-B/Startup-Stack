@@ -63,13 +63,15 @@ export default function WatchCourse({ params }: { params: { courseId: string } }
         "Course Activity Completed", 
         `You've successfully completed the lesson for "${course.title}" and earned points.`,
         "success",
-        "student"
+        "student",
+        user?.id
       );
       addNotification(
         "Student Engagement", 
         `${user?.name || "A student"} completed watching the video for "${course.title}".`,
         "info",
-        "faculty"
+        "faculty",
+        course.facultyId // Only notify the faculty who owns the course
       );
     } catch (err: any) {
       toast({

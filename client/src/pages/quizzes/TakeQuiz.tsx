@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuizQuestions, useCreateQuestion, useSubmitQuiz } from "@/hooks/use-quizzes";
+import { useCourses } from "@/hooks/use-courses";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useLocation } from "wouter";
 import { Loader2, Plus, ArrowRight, CheckCircle2, ChevronLeft } from "lucide-react";
@@ -13,6 +14,7 @@ export default function TakeQuiz({ params }: { params: { courseId: string, quizI
   const [_, setLocation] = useLocation();
   const { data: questions, isLoading } = useQuizQuestions(quizId);
   const { mutateAsync: createQuestion, isPending: isAddingQuestion } = useCreateQuestion();
+  const { data: allCourses } = useCourses();
   const { addNotification } = useNotifications();
   const { mutateAsync: submitQuiz, isPending: isSubmitting } = useSubmitQuiz();
 
@@ -46,8 +48,12 @@ export default function TakeQuiz({ params }: { params: { courseId: string, quizI
     }
     await submitQuiz({ quizId, courseId, answers });
     
-    addNotification("Quiz Submitted", "Your quiz answers have been submitted successfully.", "success", "student");
-    addNotification("Student Completed Quiz", `${user?.name || "A student"} has completed a quiz.`, "info", "faculty");
+    addNotification("Quiz Submitted", "Your quiz answers have been submitted successfully.", "success", "student", user?.id);
+    
+    const course = allCourses?.find((c: any) => c.id === courseId);
+    if (course?.facultyId) {
+       addNotification("Student Completed Quiz", `${user?.name || "A student"} completed the quiz for "${course.title}".`, "info", "faculty", course.facultyId);
+    }
     
     setLocation(`/courses/${courseId}/quizzes`);
   };
