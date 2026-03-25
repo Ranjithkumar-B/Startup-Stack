@@ -221,20 +221,10 @@ export class DatabaseStorage implements IStorage {
       // Dynamic possible points based on student's specific curriculum
       let possiblePoints = 2; // Baseline for daily login
       
-      const facultyLink = await FacultyStudentModel.findOne({ studentId: student._id }).lean();
-      let referenceDate = student.createdAt || new Date();
-      
-      if (facultyLink) {
-          const classmates = await FacultyStudentModel.find({ facultyId: facultyLink.facultyId }).lean();
-          const classmateIds = classmates.map(c => c.studentId);
-          const earliestClassmate = await UserModel.findOne({ _id: { $in: classmateIds } }).sort({ createdAt: 1 }).lean();
-          if (earliestClassmate?.createdAt) {
-              referenceDate = earliestClassmate.createdAt;
-          }
-      }
-
+      const earliestUser = await UserModel.findOne().sort({ createdAt: 1 }).lean();
+      const referenceDate = earliestUser?.createdAt || student.createdAt || new Date();
       const daysSinceCreation = differenceInDays(new Date(), new Date(referenceDate));
-      possiblePoints += (daysSinceCreation + 1) * 2; 
+      possiblePoints += (daysSinceCreation + 1) * 2; // 2 points per day from global start
 
       for (const course of enrolledCourses) {
         possiblePoints += (course.duration || 0);
@@ -297,18 +287,8 @@ export class DatabaseStorage implements IStorage {
       // Dynamic possible points
       let possiblePoints = 2; // Baseline
       
-      const facultyLink = await FacultyStudentModel.findOne({ studentId: student._id }).lean();
-      let referenceDate = student.createdAt || new Date();
-      
-      if (facultyLink) {
-          const classmates = await FacultyStudentModel.find({ facultyId: facultyLink.facultyId }).lean();
-          const classmateIds = classmates.map(c => c.studentId);
-          const earliestClassmate = await UserModel.findOne({ _id: { $in: classmateIds } }).sort({ createdAt: 1 }).lean();
-          if (earliestClassmate?.createdAt) {
-              referenceDate = earliestClassmate.createdAt;
-          }
-      }
-
+      const earliestUser = await UserModel.findOne().sort({ createdAt: 1 }).lean();
+      const referenceDate = earliestUser?.createdAt || student.createdAt || new Date();
       const daysSinceCreation = differenceInDays(new Date(), new Date(referenceDate));
       possiblePoints += (daysSinceCreation + 1) * 2; 
 
@@ -343,10 +323,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getLeaderboard(userId?: number, role?: string): Promise<any[]> {
-    let studentIds: number[] = [];
+    let studentIds: any[] = [];
     if (role === 'faculty' && userId) {
       const mappings = await FacultyStudentModel.find({ facultyId: userId }).lean();
       studentIds = Array.from(new Set(mappings.map(m => m.studentId)));
+    } else if (role === 'student' && userId) {
+      const mapping = await FacultyStudentModel.findOne({ studentId: userId }).lean();
+      if (mapping) {
+        // If in a class, see classmates
+        const mappings = await FacultyStudentModel.find({ facultyId: mapping.facultyId }).lean();
+        studentIds = Array.from(new Set(mappings.map(m => m.studentId)));
+      } else {
+        // If not in a class, see ONLY self
+        studentIds = [userId];
+      }
     }
 
     const query = studentIds.length > 0 ? { _id: { $in: studentIds }, role: 'student' } : { role: 'student' };
@@ -368,18 +358,8 @@ export class DatabaseStorage implements IStorage {
 
       // Dynamic possible points
       let possiblePoints = 2; 
-      const facultyLink = await FacultyStudentModel.findOne({ studentId: student._id }).lean();
-      let referenceDate = student.createdAt || new Date();
-      
-      if (facultyLink) {
-          const classmates = await FacultyStudentModel.find({ facultyId: facultyLink.facultyId }).lean();
-          const classmateIds = classmates.map(c => c.studentId);
-          const earliestClassmate = await UserModel.findOne({ _id: { $in: classmateIds } }).sort({ createdAt: 1 }).lean();
-          if (earliestClassmate?.createdAt) {
-              referenceDate = earliestClassmate.createdAt;
-          }
-      }
-
+      const earliestUser = await UserModel.findOne().sort({ createdAt: 1 }).lean();
+      const referenceDate = earliestUser?.createdAt || student.createdAt || new Date();
       const daysSinceCreation = differenceInDays(new Date(), new Date(referenceDate));
       possiblePoints += (daysSinceCreation + 1) * 2; 
 

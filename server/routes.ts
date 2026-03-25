@@ -454,20 +454,10 @@ export async function registerRoutes(
     const student = await UserModel.findById(studentId).lean();
     let possiblePoints = 2; // Baseline
     
-    const facultyLink = await FacultyStudentModel.findOne({ studentId }).lean();
-    let referenceDate = student?.createdAt || new Date();
-    
-    if (facultyLink) {
-        const classmates = await FacultyStudentModel.find({ facultyId: facultyLink.facultyId }).lean();
-        const classmateIds = classmates.map(c => c.studentId);
-        const earliestClassmate = await UserModel.findOne({ _id: { $in: classmateIds } }).sort({ createdAt: 1 }).lean();
-        if (earliestClassmate?.createdAt) {
-            referenceDate = earliestClassmate.createdAt;
-        }
-    }
-
+    const earliestUser = await UserModel.findOne().sort({ createdAt: 1 }).lean();
+    const referenceDate = earliestUser?.createdAt || student?.createdAt || new Date();
     const daysSinceCreation = differenceInDays(new Date(), new Date(referenceDate));
-    possiblePoints += (daysSinceCreation + 1) * 2; // 2 points per day from reference
+    possiblePoints += (daysSinceCreation + 1) * 2; // 2 points per day from global start
 
     for (const course of enrolledCourses) {
        possiblePoints += (course.duration || 0);

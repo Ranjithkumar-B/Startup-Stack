@@ -64,7 +64,7 @@ export default function Leaderboard() {
               {/* Score section */}
               <div className="pr-8 text-right min-w-[120px]">
                  <p className="text-3xl font-display font-black text-foreground/90 tabular-nums">
-                    {student.points}/{student.maxPoints}
+                    {student.points}
                  </p>
                  <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Score</p>
               </div>
