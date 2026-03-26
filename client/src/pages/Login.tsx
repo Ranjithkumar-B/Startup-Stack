@@ -36,7 +36,7 @@ export default function Login() {
               <BookOpen className="w-10 h-10 text-white" />
             </div>
             <h1 className="text-5xl md:text-6xl font-display font-extrabold tracking-tight mb-4 bg-clip-text text-transparent bg-gradient-to-b from-white to-white/60">
-              Startup Stack
+              Student Course Engagement Monitoring Tool
             </h1>
             <p className="text-xl text-white/50 max-w-2xl mx-auto font-light tracking-wide">
               Select your workspace environment to continue
