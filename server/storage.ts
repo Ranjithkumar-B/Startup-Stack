@@ -212,7 +212,7 @@ export class DatabaseStorage implements IStorage {
       
       const rawPoints = events.reduce((sum, e) => {
         if (e.eventType === 'video_watch') return sum + e.duration;
-        if (e.eventType === 'quiz_complete') return sum + 10;
+        if (e.eventType === 'quiz_submit') return sum + 10;
         if (e.eventType === 'assignment_submit') return sum + 8;
         if (e.eventType === 'login') return sum + 2;
         return sum;
@@ -278,7 +278,7 @@ export class DatabaseStorage implements IStorage {
 
       const rawPoints = events.reduce((sum, e) => {
         if (e.eventType === 'video_watch') return sum + e.duration;
-        if (e.eventType === 'quiz_complete') return sum + 10;
+        if (e.eventType === 'quiz_submit') return sum + 10;
         if (e.eventType === 'assignment_submit') return sum + 8;
         if (e.eventType === 'login') return sum + 2;
         return sum;
@@ -350,7 +350,7 @@ export class DatabaseStorage implements IStorage {
 
       const rawPoints = events.reduce((sum, e) => {
         if (e.eventType === 'video_watch') return sum + e.duration;
-        if (e.eventType === 'quiz_complete') return sum + 10;
+        if (e.eventType === 'quiz_submit') return sum + 10;
         if (e.eventType === 'assignment_submit') return sum + 8;
         if (e.eventType === 'login') return sum + 2;
         return sum;

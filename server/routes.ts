@@ -447,7 +447,7 @@ export async function registerRoutes(
     events.forEach(event => {
        if (event.eventType === 'login') rawPoints += 2;
        else if (event.eventType === 'video_watch') rawPoints += (event.duration || 0);
-       else if (event.eventType === 'quiz_complete') rawPoints += 10;
+       else if (event.eventType === 'quiz_submit') rawPoints += 10;
        else if (event.eventType === 'assignment_submit') rawPoints += 8;
     });
 
