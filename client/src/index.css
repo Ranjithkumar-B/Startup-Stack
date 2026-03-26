@@ -7,7 +7,6 @@
 :root {
  --font-sans: 'Poppins', sans-serif;
 --font-display: 'Poppins', sans-serif;
-  /* Material UI inspired palette but modernized */
   --background: 210 20% 98%;
   --foreground: 222 47% 11%;
   
@@ -17,16 +16,15 @@
   --popover: 0 0% 100%;
   --popover-foreground: 222 47% 11%;
   
-  --primary: 231 48% 48%; /* Indigo 500 */
-  --primary-foreground: 210 40% 98%;
+  --primary: 231 48% 48%; 
   
-  --secondary: 262 83% 58%; /* Deep Purple */
+  --secondary: 262 83% 58%; 
   --secondary-foreground: 210 40% 98%;
   
   --muted: 210 40% 96%;
   --muted-foreground: 215 16% 47%;
   
-  --accent: 160 84% 39%; /* Teal */
+  --accent: 160 84% 39%; 
   --accent-foreground: 210 40% 98%;
   
   --destructive: 0 84% 60%;
@@ -38,7 +36,6 @@
 
   --radius: 0.75rem;
 
-  /* Recharts colors */
   --chart-1: 231 48% 48%;
   --chart-2: 160 84% 39%;
   --chart-3: 262 83% 58%;
@@ -110,7 +107,6 @@
   }
 }
 
-/* Recharts styling tweaks */
 .recharts-cartesian-axis-tick-value {
   font-family: var(--font-sans);
   font-size: 12px;
