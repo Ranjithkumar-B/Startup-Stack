@@ -43,7 +43,7 @@ export default function StudentDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <StatCard 
           title="Engagement Score" 
-          value={score} 
+          value={`${score}%`} 
           icon={Trophy} 
           trend={{ value: 12, isPositive: true }}
           colorClass="text-yellow-600 bg-yellow-500/10"
