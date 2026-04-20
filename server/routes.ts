@@ -493,42 +493,10 @@ export async function registerRoutes(
       return res.status(403).json({ message: "Forbidden" });
     }
     
-    const events = await storage.getStudentEvents(studentId);
-    const enrollments = await EnrollmentModel.find({ studentId }).lean();
-    const enrolledCourseIds = enrollments.map(e => e.courseId);
-    const enrolledCourses = await CourseModel.find({ _id: { $in: enrolledCourseIds } }).lean();
+    const stats = await storage.calculateEngagementScore(studentId);
+    if (!stats) return res.status(404).json({ message: "Student not found" });
 
-    let rawPoints = 0;
-    events.forEach(event => {
-       if (event.eventType === 'login') rawPoints += 2;
-       else if (event.eventType === 'video_watch') rawPoints += (event.duration || 0);
-       else if (event.eventType === 'quiz_submit') rawPoints += 10;
-       else if (event.eventType === 'assignment_submit') rawPoints += 8;
-    });
-
-    const student = await UserModel.findById(studentId).lean();
-    let possiblePoints = 2; // Baseline
-    
-    const earliestUser = await UserModel.findOne().sort({ createdAt: 1 }).lean();
-    const referenceDate = earliestUser?.createdAt || student?.createdAt || new Date();
-    const daysSinceCreation = differenceInDays(new Date(), new Date(referenceDate));
-    possiblePoints += (daysSinceCreation + 1) * 2; // 2 points per day from global start
-
-    for (const course of enrolledCourses) {
-       possiblePoints += (course.duration || 0);
-       const taskCount = await TaskModel.countDocuments({ courseId: course._id });
-       const quizCount = await QuizModel.countDocuments({ courseId: course._id });
-       possiblePoints += (taskCount * 8) + (quizCount * 10);
-    }
-
-    // Ensure total available points >= earned points
-    possiblePoints = Math.max(possiblePoints, rawPoints);
-
-    const score = Math.round((rawPoints / Math.max(possiblePoints, 1)) * 100);
-    
-    const streak = events.length > 0 ? 3 : 0;
-    const hours = (events.reduce((acc, curr) => acc + (curr.duration || 0), 0) / 60).toFixed(1);
-    
+    const { score, hours, streak, facultyName, points, maxPoints, events, enrolledCourses } = stats;
     const courses = enrolledCourses.length;
     
     // Dynamic history calculation
@@ -539,9 +507,9 @@ export async function registerRoutes(
     
     const days = eachDayOfInterval({ start, end });
     const history = days.map(day => {
-      const dayEvents = events.filter(e => e.timestamp && isSameDay(new Date(e.timestamp), day));
+      const dayEvents = events.filter((e: any) => e.timestamp && isSameDay(new Date(e.timestamp), day));
       let dayScore = 0;
-      dayEvents.forEach(e => {
+      dayEvents.forEach((e: any) => {
         if (e.eventType === 'login') dayScore += 2;
         else if (e.eventType === 'video_watch') dayScore += (e.duration || 0);
         else if (e.eventType === 'quiz_submit') dayScore += 10;
@@ -555,21 +523,12 @@ export async function registerRoutes(
     });
 
     const breakdown = {
-      logins: events.filter(e => e.eventType === 'login').length,
-      videoWatches: events.filter(e => e.eventType === 'video_watch').length,
-      quizzes: events.filter(e => e.eventType === 'quiz_submit').length,
-      assignments: events.filter(e => e.eventType === 'assignment_submit').length,
+      logins: events.filter((e: any) => e.eventType === 'login').length,
+      videoWatches: events.filter((e: any) => e.eventType === 'video_watch').length,
+      quizzes: events.filter((e: any) => e.eventType === 'quiz_submit').length,
+      assignments: events.filter((e: any) => e.eventType === 'assignment_submit').length,
     };
-
-    let facultyName = null;
-    const facultyLink = await FacultyStudentModel.findOne({ studentId }).lean();
-      
-    if (facultyLink) {
-       const facultyUser = await UserModel.findById(facultyLink.facultyId).lean();
-       if (facultyUser) { facultyName = facultyUser.name; }
-    }
-
-    res.json({ score, hours, courses, streak, history, recentEvents: events.slice(0, 5), breakdown, facultyName, points: rawPoints, maxPoints: possiblePoints });
+    res.json({ score, hours, courses, streak, history, recentEvents: events.slice(0, 5), breakdown, facultyName, points, maxPoints });
   });
 
   app.get('/api/analytics/course/:id', requireAuth, async (req, res) => {

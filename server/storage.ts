@@ -44,6 +44,7 @@ export interface IStorage {
   getLeaderboard(userId?: number, role?: string): Promise<any[]>;
   
   getPlatformStats(): Promise<any>;
+  calculateEngagementScore(studentId: number): Promise<any>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -344,47 +345,17 @@ export class DatabaseStorage implements IStorage {
     const studentsList = await UserModel.find(query).lean();
     
     const results = await Promise.all(studentsList.map(async (student) => {
-      const events = await EngagementEventModel.find({ studentId: student._id }).lean();
-      const enrollments = await EnrollmentModel.find({ studentId: student._id }).lean();
-      const enrolledCourseIds = enrollments.map(e => e.courseId);
-      const enrolledCourses = await CourseModel.find({ _id: { $in: enrolledCourseIds } }).lean();
-
-      const rawPoints = events.reduce((sum, e) => {
-        if (e.eventType === 'video_watch') return sum + e.duration;
-        if (e.eventType === 'quiz_submit') return sum + 10;
-        if (e.eventType === 'assignment_submit') return sum + 8;
-        if (e.eventType === 'login') return sum + 2;
-        return sum;
-      }, 0);
-
-      // Dynamic possible points
-      let possiblePoints = 2; 
-      const earliestUser = await UserModel.findOne().sort({ createdAt: 1 }).lean();
-      const referenceDate = earliestUser?.createdAt || student.createdAt || new Date();
-      const daysSinceCreation = differenceInDays(new Date(), new Date(referenceDate));
-      possiblePoints += (daysSinceCreation + 1) * 2; 
-
-      for (const course of enrolledCourses) {
-        possiblePoints += (course.duration || 0);
-        const taskCount = await TaskModel.countDocuments({ courseId: course._id });
-        const quizCount = await QuizModel.countDocuments({ courseId: course._id });
-        possiblePoints += (taskCount * 8) + (quizCount * 10);
-      }
-      
-      // Ensure total available points >= earned points
-      possiblePoints = Math.max(possiblePoints, rawPoints);
-
+      const stats = await this.calculateEngagementScore(student._id);
       const avatarLetters = (student.name || '').split(' ').map((n: any) => n[0]).join('').toUpperCase().substring(0, 2);
-      const engagementScore = Math.round((rawPoints / Math.max(possiblePoints, 1)) * 100);
 
       return {
         id: student._id,
         name: student.name,
-        points: rawPoints,
-        engagementScore, 
+        points: stats.points,
+        engagementScore: stats.score, 
         avatarLetters,
-        trend: engagementScore > 50 ? 'up' : 'down',
-        maxPoints: possiblePoints
+        trend: stats.score > 50 ? 'up' : 'down',
+        maxPoints: stats.maxPoints
       };
     }));
     
@@ -408,6 +379,61 @@ export class DatabaseStorage implements IStorage {
       totalQuizzes, 
       totalTasks,
       totalEvents
+    };
+  }
+  
+  async calculateEngagementScore(studentId: number): Promise<any> {
+    const student = await UserModel.findById(studentId).lean();
+    if (!student) return null;
+
+    const events = await EngagementEventModel.find({ studentId }).sort({ timestamp: -1 }).lean();
+    const enrollments = await EnrollmentModel.find({ studentId }).lean();
+    const enrolledCourseIds = enrollments.map(e => e.courseId);
+    const enrolledCourses = await CourseModel.find({ _id: { $in: enrolledCourseIds } }).lean();
+
+    let rawPoints = 0;
+    events.forEach(e => {
+      if (e.eventType === 'video_watch') rawPoints += (e.duration || 0);
+      else if (e.eventType === 'quiz_submit') rawPoints += 10;
+      else if (e.eventType === 'assignment_submit') rawPoints += 8;
+      else if (e.eventType === 'login') rawPoints += 2;
+    });
+
+    let possiblePoints = 2; // Baseline
+    const earliestUser = await UserModel.findOne().sort({ createdAt: 1 }).lean();
+    const referenceDate = earliestUser?.createdAt || student.createdAt || new Date();
+    const daysSinceCreation = differenceInDays(new Date(), new Date(referenceDate));
+    possiblePoints += (daysSinceCreation + 1) * 2; 
+
+    for (const course of enrolledCourses) {
+      possiblePoints += (course.duration || 0);
+      const taskCount = await TaskModel.countDocuments({ courseId: course._id });
+      const quizCount = await QuizModel.countDocuments({ courseId: course._id });
+      possiblePoints += (taskCount * 8) + (quizCount * 10);
+    }
+    
+    possiblePoints = Math.max(possiblePoints, rawPoints);
+    const score = Math.round((rawPoints / Math.max(possiblePoints, 1)) * 100);
+    
+    const hours = (events.reduce((acc, curr) => acc + (curr.duration || 0), 0) / 60).toFixed(1);
+    const streak = events.length > 0 ? 3 : 0;
+
+    let facultyName = null;
+    const facultyLink = await FacultyStudentModel.findOne({ studentId }).lean();
+    if (facultyLink) {
+      const facultyUser = await UserModel.findById(facultyLink.facultyId).lean();
+      if (facultyUser) facultyName = facultyUser.name;
+    }
+
+    return { 
+      score, 
+      points: rawPoints, 
+      maxPoints: possiblePoints, 
+      hours, 
+      streak, 
+      facultyName,
+      events,
+      enrolledCourses
     };
   }
 }
