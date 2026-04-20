@@ -149,6 +149,10 @@ export default function CourseQuizzes({ params }: { params: { courseId: string }
                 <span>Completed</span>
                 <span className="text-lg">{quiz.score}%</span>
               </div>
+            ) : quiz.isStarted && !isFaculty ? (
+              <div className="bg-destructive/10 text-destructive font-bold p-3 rounded-xl flex items-center justify-center gap-2">
+                <span>Attempt Locked</span>
+              </div>
             ) : (
               <button
                 onClick={() => setLocation(`/courses/${courseId}/quizzes/${quiz.id}`)}

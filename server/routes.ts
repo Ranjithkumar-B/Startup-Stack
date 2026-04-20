@@ -303,14 +303,22 @@ export async function registerRoutes(
       
       if (req.user.role === 'student') {
         const submissions = await storage.getQuizSubmissions(req.user.id, courseId);
+        const events = await storage.getStudentEvents(req.user.id);
+        
         const enrichedQuizzes = quizzes.map(q => {
           const sub = submissions.find(s => s.quizId === q.id);
-          return { ...q, score: sub?.score, isSubmitted: !!sub };
+          const hasStarted = events.some(e => e.eventType === 'quiz_start' && e.quizId === q.id);
+          return { 
+            ...q, 
+            score: sub?.score, 
+            isSubmitted: !!sub,
+            isStarted: hasStarted
+          };
         });
         return res.json(enrichedQuizzes);
       }
       
-      res.json(quizzes.map(q => ({ ...q, isSubmitted: false })));
+      res.json(quizzes.map(q => ({ ...q, isSubmitted: false, isStarted: false })));
     } catch (err) {
       console.error("Fetch Quizzes Error:", err);
       res.status(500).json({ message: "Failed to load quizzes" });

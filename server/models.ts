@@ -55,6 +55,7 @@ const EngagementEventSchema = new mongoose.Schema({
   _id: Number,
   studentId: { type: Number, required: true },
   courseId: { type: Number, required: true },
+  quizId: { type: Number, default: null },
   eventType: { type: String, required: true },
   duration: { type: Number, default: 0 },
   timestamp: { type: Date, default: Date.now }

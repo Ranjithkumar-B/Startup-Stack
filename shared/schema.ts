@@ -16,7 +16,8 @@ export const loginSchema = z.object({
 export const eventSchema = z.object({
   studentId: z.number().optional(), 
   courseId: z.number().optional().default(0),
-  eventType: z.enum(["video_watch", "quiz_submit", "course_open", "assignment_submit", "login"]),
+  quizId: z.number().optional().nullable(),
+  eventType: z.enum(["video_watch", "quiz_submit", "quiz_start", "course_open", "assignment_submit", "login"]),
   duration: z.number().optional().default(0),
 });
 
@@ -58,6 +59,7 @@ export interface EngagementEvent {
   id: number;
   studentId: number;
   courseId: number;
+  quizId: number | null;
   eventType: string;
   duration: number | null;
   timestamp: Date | null;
@@ -75,6 +77,7 @@ export interface Quiz {
   title: string;
   description: string | null;
   timeLimit: number | null;
+  isStarted?: boolean;
 }
 
 export interface QuizQuestion {

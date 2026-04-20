@@ -125,6 +125,7 @@ export class DatabaseStorage implements IStorage {
     const newEvent = await EngagementEventModel.create({
       studentId: event.studentId!,
       courseId: event.courseId,
+      quizId: event.quizId || null,
       eventType: event.eventType,
       duration: event.duration || 0,
     });

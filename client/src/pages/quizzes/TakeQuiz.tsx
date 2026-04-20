@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuizQuestions, useCreateQuestion, useSubmitQuiz, useQuiz, useQuizzes } from "@/hooks/use-quizzes";
 import { useCourses } from "@/hooks/use-courses";
+import { useLogEngagement } from "@/hooks/use-engagement";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useLocation } from "wouter";
 import { Loader2, Plus, ArrowRight, CheckCircle2, ChevronLeft } from "lucide-react";
@@ -17,6 +18,7 @@ export default function TakeQuiz({ params }: { params: { courseId: string, quizI
   const { data: allCourses } = useCourses();
   const { addNotification } = useNotifications();
   const { mutateAsync: submitQuiz, isPending: isSubmitting } = useSubmitQuiz();
+  const { mutateAsync: logEvent } = useLogEngagement();
   const { data: quiz } = useQuiz(quizId);
   const { data: quizzes } = useQuizzes(courseId);
   const isFaculty = user?.role === "faculty" || user?.role === "admin";
@@ -32,9 +34,27 @@ export default function TakeQuiz({ params }: { params: { courseId: string, quizI
 
   useEffect(() => {
     const currentQuiz = quizzes?.find((q: any) => q.id === quizId);
-    if (currentQuiz?.isSubmitted && !isFaculty) {
+    if (!currentQuiz || isFaculty) return;
+
+    if (currentQuiz.isSubmitted) {
       setLocation(`/courses/${courseId}/quizzes`);
+      return;
     }
+
+    if (currentQuiz.isStarted) {
+      // Already started once, cannot enter again
+      alert("You have already started this quiz once. Per system rules, you cannot re-enter the test.");
+      setLocation(`/courses/${courseId}/quizzes`);
+      return;
+    }
+
+    // First time entering - log the start
+    logEvent({
+      courseId,
+      quizId,
+      eventType: "quiz_start",
+      duration: 0
+    });
   }, [quizzes, isFaculty, quizId, courseId]);
 
   useEffect(() => {
