@@ -153,12 +153,13 @@ export default function TakeQuiz({ params }: { params: { courseId: string, quizI
 
       <div className="max-w-3xl mx-auto space-y-8">
         {!isFaculty && timeLeft !== null && (
-          <div className={`sticky top-24 z-10 p-4 rounded-2xl flex items-center justify-between mui-shadow-lg border-2 mb-8 animate-in slide-in-from-top-4 ${timeLeft < 60 ? "bg-destructive/10 border-destructive text-destructive animate-pulse" : "bg-primary/10 border-primary text-primary"}`}>
-             <div className="flex items-center gap-3">
-               <div className={`w-3 h-3 rounded-full ${timeLeft < 60 ? "bg-destructive" : "bg-primary"} animate-ping`} />
-               <span className="font-bold uppercase tracking-widest text-xs">Time Remaining</span>
+          <div className={`fixed top-24 right-6 md:right-10 z-50 p-4 rounded-2xl mui-shadow-lg border-2 animate-in slide-in-from-right-4 flex flex-col items-center min-w-[120px] ${timeLeft < 60 ? "bg-destructive/10 border-destructive text-destructive animate-pulse" : "bg-card border-primary text-primary"}`}>
+             <span className="font-bold uppercase tracking-widest text-[10px] mb-1 opacity-80">Remaining</span>
+             <span className="text-3xl font-display font-black tabular-nums leading-none">{formatTime(timeLeft)}</span>
+             <div className="mt-2 flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full ${timeLeft < 60 ? "bg-destructive" : "bg-primary"} animate-ping`} />
+                <span className="text-[10px] font-bold">LIVE</span>
              </div>
-             <span className="text-3xl font-display font-black tabular-nums">{formatTime(timeLeft)}</span>
           </div>
         )}
 
