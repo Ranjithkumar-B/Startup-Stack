@@ -13,11 +13,22 @@ export function useQuizzes(courseId: number) {
   });
 }
 
+export function useQuiz(quizId: number) {
+  return useQuery({
+    queryKey: ["quiz", quizId],
+    queryFn: async () => {
+      const res = await apiClient.get(`/api/quizzes/${quizId}`);
+      return res.data;
+    },
+    enabled: !!quizId,
+  });
+}
+
 export function useCreateQuiz() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ courseId, title, description }: { courseId: number, title: string, description: string }) => {
-      const res = await apiClient.post(`/api/courses/${courseId}/quizzes`, { title, description });
+    mutationFn: async ({ courseId, title, description, timeLimit }: { courseId: number, title: string, description: string, timeLimit?: number }) => {
+      const res = await apiClient.post(`/api/courses/${courseId}/quizzes`, { title, description, timeLimit });
       return res.data;
     },
     onSuccess: (_, variables) => {

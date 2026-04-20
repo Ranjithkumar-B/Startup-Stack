@@ -17,16 +17,18 @@ export default function CourseQuizzes({ params }: { params: { courseId: string }
   const [showCreate, setShowCreate] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [timeLimit, setTimeLimit] = useState("0");
 
   const isFaculty = user?.role === "faculty" || user?.role === "admin";
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title) return;
-    await createQuiz({ courseId, title, description });
+    await createQuiz({ courseId, title, description, timeLimit: Number(timeLimit) });
     setShowCreate(false);
     setTitle("");
     setDescription("");
+    setTimeLimit("0");
   };
 
   const handleDelete = async (e: React.MouseEvent, quizId: number) => {
@@ -99,6 +101,17 @@ export default function CourseQuizzes({ params }: { params: { courseId: string }
                 placeholder="Quiz Description"
               />
             </div>
+            <div>
+              <label className="block text-sm font-semibold mb-1">Time Limit (Minutes)</label>
+              <input
+                type="number"
+                className="w-full p-3 rounded-lg bg-muted/50 border outline-none focus:border-primary"
+                value={timeLimit}
+                onChange={(e) => setTimeLimit(e.target.value)}
+                placeholder="0 for no limit"
+                min="0"
+              />
+            </div>
             <div className="flex gap-3">
               <button disabled={isCreating} type="submit" className="px-5 py-2.5 bg-primary text-primary-foreground rounded-lg font-bold flex items-center gap-2">
                 {isCreating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}
@@ -124,6 +137,11 @@ export default function CourseQuizzes({ params }: { params: { courseId: string }
               </button>
             )}
             <h3 className="text-xl font-bold mb-2 text-foreground pr-8">{quiz.title}</h3>
+            <div className="flex gap-2 mb-4">
+              <span className="text-[10px] font-bold uppercase tracking-wider bg-primary/10 text-primary px-2 py-1 rounded-md">
+                {quiz.timeLimit ? `${quiz.timeLimit} mins` : "No limit"}
+              </span>
+            </div>
             <p className="text-muted-foreground mb-6 line-clamp-2 min-h-12">{quiz.description}</p>
             
             {quiz.isSubmitted && !isFaculty ? (

@@ -74,6 +74,7 @@ export interface Quiz {
   courseId: number;
   title: string;
   description: string | null;
+  timeLimit: number | null;
 }
 
 export interface QuizQuestion {

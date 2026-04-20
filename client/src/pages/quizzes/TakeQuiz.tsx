@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { useQuizQuestions, useCreateQuestion, useSubmitQuiz } from "@/hooks/use-quizzes";
+import { useQuizQuestions, useCreateQuestion, useSubmitQuiz, useQuiz } from "@/hooks/use-quizzes";
 import { useCourses } from "@/hooks/use-courses";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useLocation } from "wouter";
@@ -17,6 +17,11 @@ export default function TakeQuiz({ params }: { params: { courseId: string, quizI
   const { data: allCourses } = useCourses();
   const { addNotification } = useNotifications();
   const { mutateAsync: submitQuiz, isPending: isSubmitting } = useSubmitQuiz();
+  const { data: quiz } = useQuiz(quizId);
+  const isFaculty = user?.role === "faculty" || user?.role === "admin";
+
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const [isAutoSubmitting, setIsAutoSubmitting] = useState(false);
 
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [showAddQuestion, setShowAddQuestion] = useState(false);
@@ -24,7 +29,31 @@ export default function TakeQuiz({ params }: { params: { courseId: string, quizI
   const [opts, setOpts] = useState(["", "", "", ""]);
   const [correctIdx, setCorrectIdx] = useState(0);
 
-  const isFaculty = user?.role === "faculty" || user?.role === "admin";
+  useEffect(() => {
+    if (quiz?.timeLimit && quiz.timeLimit > 0 && !isFaculty) {
+      setTimeLeft(quiz.timeLimit * 60);
+    }
+  }, [quiz, isFaculty]);
+
+  useEffect(() => {
+    if (timeLeft === null || isFaculty || isAutoSubmitting) return;
+    
+    if (timeLeft <= 0) {
+      handleAutoSubmit();
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setTimeLeft(prev => (prev !== null ? prev - 1 : null));
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [timeLeft, isFaculty, isAutoSubmitting]);
+
+  const handleAutoSubmit = async () => {
+    setIsAutoSubmitting(true);
+    await handleSubmitQuiz(true);
+  };
 
   const handleCreateQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,22 +69,37 @@ export default function TakeQuiz({ params }: { params: { courseId: string, quizI
     setAnswers({ ...answers, [qId]: optIdx });
   };
 
-  const handleSubmitQuiz = async () => {
+  const handleSubmitQuiz = async (isAuto = false) => {
     if (!questions) return;
-    if (Object.keys(answers).length < questions.length) {
-      alert("Please answer all questions before submitting.");
-      return;
-    }
-    await submitQuiz({ quizId, courseId, answers });
-    
-    addNotification("Quiz Submitted", "Your quiz answers have been submitted successfully.", "success", "student", user?.id);
-    
-    const course = allCourses?.find((c: any) => c.id === courseId);
-    if (course?.facultyId) {
-       addNotification("Student Completed Quiz", `${user?.name || "A student"} completed the quiz for "${course.title || 'Course'}".`, "info", "faculty", course.facultyId);
+    if (!isAuto && Object.keys(answers).length < questions.length) {
+      if (!confirm("You haven't answered all questions. Submit anyway?")) return;
     }
     
-    setLocation(`/courses/${courseId}/quizzes`);
+    try {
+      await submitQuiz({ quizId, courseId, answers });
+      addNotification(
+        "Quiz Submitted", 
+        isAuto ? "Time is up! Your quiz has been auto-submitted." : "Your quiz answers have been submitted successfully.", 
+        isAuto ? "info" : "success", 
+        "student", 
+        user?.id
+      );
+      
+      const course = allCourses?.find((c: any) => c.id === courseId);
+      if (course?.facultyId) {
+         addNotification("Student Completed Quiz", `${user?.name || "A student"} completed the quiz for "${course.title || 'Course'}".`, "info", "faculty", course.facultyId);
+      }
+      setLocation(`/courses/${courseId}/quizzes`);
+    } catch (err) {
+      alert("Failed to submit quiz.");
+      setIsAutoSubmitting(false);
+    }
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   if (isLoading) {
@@ -80,6 +124,16 @@ export default function TakeQuiz({ params }: { params: { courseId: string, quizI
       </div>
 
       <div className="max-w-3xl mx-auto space-y-8">
+        {!isFaculty && timeLeft !== null && (
+          <div className={`sticky top-24 z-10 p-4 rounded-2xl flex items-center justify-between mui-shadow-lg border-2 mb-8 animate-in slide-in-from-top-4 ${timeLeft < 60 ? "bg-destructive/10 border-destructive text-destructive animate-pulse" : "bg-primary/10 border-primary text-primary"}`}>
+             <div className="flex items-center gap-3">
+               <div className={`w-3 h-3 rounded-full ${timeLeft < 60 ? "bg-destructive" : "bg-primary"} animate-ping`} />
+               <span className="font-bold uppercase tracking-widest text-xs">Time Remaining</span>
+             </div>
+             <span className="text-3xl font-display font-black tabular-nums">{formatTime(timeLeft)}</span>
+          </div>
+        )}
+
         {questions?.map((q: any, i: number) => {
           const options = typeof q.options === 'string' ? JSON.parse(q.options) : q.options;
           return (
@@ -123,7 +177,7 @@ export default function TakeQuiz({ params }: { params: { courseId: string, quizI
 
         {!isFaculty && questions?.length > 0 && (
           <button
-            onClick={handleSubmitQuiz}
+            onClick={() => handleSubmitQuiz(false)}
             disabled={isSubmitting}
             className="w-full py-4 bg-primary text-primary-foreground font-bold rounded-2xl text-lg mui-shadow hover:shadow-primary/30 transition-all flex justify-center items-center gap-2"
           >

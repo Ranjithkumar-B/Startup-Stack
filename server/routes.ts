@@ -6,7 +6,7 @@ import { api } from "@shared/routes";
 import { z } from "zod";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
-import { TaskModel, TaskSubmissionModel, UserModel, EnrollmentModel, FacultyStudentModel, QuizModel, CourseModel } from "./models";
+import { TaskModel, TaskSubmissionModel, UserModel, EnrollmentModel, FacultyStudentModel, QuizModel, CourseModel, EngagementEventModel, QuizSubmissionModel, QuizQuestionModel } from "./models";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -316,15 +316,25 @@ export async function registerRoutes(
       res.status(500).json({ message: "Failed to load quizzes" });
     }
   });
+  
+  app.get('/api/quizzes/:id', requireAuth, async (req, res) => {
+    try {
+      const quiz = await storage.getQuiz(Number(req.params.id));
+      if (!quiz) return res.status(404).json({ message: "Quiz not found" });
+      res.json(quiz);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to load quiz" });
+    }
+  });
 
   app.post('/api/courses/:id/quizzes', requireAuth, async (req, res) => {
     if (req.user.role !== 'faculty' && req.user.role !== 'admin') {
       return res.status(403).json({ message: "Forbidden" });
     }
     const courseId = Number(req.params.id);
-    const { title, description } = req.body;
+    const { title, description, timeLimit } = req.body;
     try {
-      const quiz = await storage.createQuiz({ courseId, title, description });
+      const quiz = await storage.createQuiz({ courseId, title, description, timeLimit: Number(timeLimit) || 0 });
       res.status(201).json(quiz);
     } catch (err) {
       console.error("Quiz creation failed:", err);
@@ -736,7 +746,7 @@ export async function registerRoutes(
     if (req.user.role !== 'admin') return res.status(403).json({ message: "Admin access required" });
     try {
       await QuizModel.findByIdAndDelete(Number(req.params.id));
-      await QuestionModel.deleteMany({ quizId: Number(req.params.id) });
+      await QuizQuestionModel.deleteMany({ quizId: Number(req.params.id) });
       res.json({ message: "Quiz deleted." });
     } catch (err) {
       res.status(500).json({ message: "Failed" });

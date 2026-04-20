@@ -74,7 +74,8 @@ const QuizSchema = new mongoose.Schema({
   _id: Number,
   courseId: { type: Number, required: true },
   title: { type: String, required: true },
-  description: String
+  description: String,
+  timeLimit: { type: Number, default: 0 }
 });
 autoIncrement(QuizSchema, 'quiz');
 export const QuizModel = mongoose.models.Quiz || mongoose.model('Quiz', QuizSchema);
