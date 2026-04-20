@@ -1,12 +1,14 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { Users, Mail, BookOpen, Plus, Trash2, Loader2, X, LogIn, PlayCircle, FileCheck, CheckCircle2, TrendingUp, Sparkles } from "lucide-react";
+import { Users, Mail, BookOpen, Plus, Trash2, Loader2, X, LogIn, PlayCircle, FileCheck, CheckCircle2, TrendingUp, Sparkles, Search } from "lucide-react";
 import { apiClient, fetchApi } from "@/lib/api-client";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNotifications } from "@/hooks/use-notifications";
+import { useLocation } from "wouter";
+import { useEffect } from "react";
 
 interface StudentDetails {
   score: number;
@@ -31,6 +33,18 @@ export default function StudentsPage() {
   const [newStudentName, setNewStudentName] = useState("");
   const [newStudentEmail, setNewStudentEmail] = useState("");
   const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
+  const [location] = useLocation();
+  const [searchQuery, setSearchQuery] = useState("");
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get("q");
+    if (q) {
+      setSearchQuery(q);
+    } else {
+      setSearchQuery("");
+    }
+  }, [location, window.location.search]);
 
   const { data: details, isLoading: isLoadingDetails } = useQuery<StudentDetails>({
     queryKey: ["/api/engagement/student", selectedStudentId],
@@ -119,25 +133,43 @@ export default function StudentsPage() {
     );
   }
 
-  return (
-    <DashboardLayout>
-      <div className="mb-8 flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-display font-bold text-foreground mb-2">Student Directory</h1>
-          <p className="text-muted-foreground text-lg">Manage your enrolled students and monitor their overall performance.</p>
-        </div>
-        {user?.role === "faculty" && (
-          <button 
-            onClick={() => setShowAddModal(!showAddModal)}
-            className="px-6 py-3 bg-primary text-white font-bold rounded-2xl flex items-center gap-2 mui-shadow hover:-translate-y-0.5 transition-all shadow-primary/30"
-          >
-            {showAddModal ? <X className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
-            {showAddModal ? "Cancel" : "Add Student"}
-          </button>
-        )}
-      </div>
+      const filteredStudents = (students || []).filter((s: any) => 
+        s.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        s.email.toLowerCase().includes(searchQuery.toLowerCase())
+      );
 
-      {showAddModal && (
+      return (
+        <DashboardLayout>
+          <div className="mb-8 flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-display font-bold text-foreground mb-2">Student Directory</h1>
+              <p className="text-muted-foreground text-lg">Manage your enrolled students and monitor their overall performance.</p>
+            </div>
+            {user?.role === "faculty" && (
+              <button 
+                onClick={() => setShowAddModal(!showAddModal)}
+                className="px-6 py-3 bg-primary text-white font-bold rounded-2xl flex items-center gap-2 mui-shadow hover:-translate-y-0.5 transition-all shadow-primary/30"
+              >
+                {showAddModal ? <X className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
+                {showAddModal ? "Cancel" : "Add Student"}
+              </button>
+            )}
+          </div>
+
+          {searchQuery && (
+            <div className="mb-6 flex items-center gap-2 text-muted-foreground animate-in fade-in slide-in-from-left-2">
+              <Search className="w-4 h-4" />
+              <span>Showing results for "<span className="text-foreground font-bold">{searchQuery}</span>"</span>
+              <button 
+                onClick={() => window.history.pushState({}, '', window.location.pathname)}
+                className="ml-2 text-xs font-bold text-primary hover:underline"
+              >
+                Clear Search
+              </button>
+            </div>
+          )}
+
+          {showAddModal && (
         <div className="mb-8 p-8 bg-card rounded-3xl border border-primary/20 mui-shadow-lg animate-in fade-in slide-in-from-top-4">
           <h2 className="text-xl font-bold mb-6">Add New Student</h2>
           <form onSubmit={handleAddStudent} className="flex flex-col md:flex-row gap-6">
@@ -177,14 +209,14 @@ export default function StudentsPage() {
       )}
 
       <div className="bg-card rounded-2xl mui-shadow border border-border overflow-hidden">
-        {students.length === 0 ? (
+        {filteredStudents.length === 0 ? (
           <div className="p-10 text-center text-muted-foreground">
             <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p className="text-lg">No students found.</p>
+            <p className="text-lg">{searchQuery ? `No students found matching "${searchQuery}"` : "No students found."}</p>
           </div>
         ) : (
           <div className="divide-y divide-border">
-            {students.map((student: any) => (
+            {filteredStudents.map((student: any) => (
               <div key={student.id} className="p-6 flex items-center justify-between hover:bg-muted/30 transition-colors">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-lg">

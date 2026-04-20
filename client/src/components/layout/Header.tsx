@@ -9,14 +9,17 @@ export function Header() {
   const { user } = useAuth();
   const { notifications, unreadCount, markAsRead, markAllAsRead, clearAll } = useNotifications();
   const [showDropdown, setShowDropdown] = useState(false);
-  const [_, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   
   if (!user) return null;
 
   const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && searchQuery.trim()) {
-      setLocation("/courses?q=" + encodeURIComponent(searchQuery));
+      const isStudentPage = location.startsWith("/students") || location.startsWith("/admin") || location.startsWith("/leaderboard");
+      // If on admin or student page, search students, otherwise search courses
+      const targetPath = isStudentPage ? "/students" : "/courses";
+      setLocation(`${targetPath}?q=${encodeURIComponent(searchQuery)}`);
     }
   };
 
