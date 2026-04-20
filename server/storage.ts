@@ -395,11 +395,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPlatformStats(): Promise<any> {
-    const totalStudents = await UserModel.countDocuments({ role: 'student' });
-    const totalFaculty = await UserModel.countDocuments({ role: 'faculty' });
+    const totalUsers = await UserModel.countDocuments();
     const totalCourses = await CourseModel.countDocuments();
+    const totalQuizzes = await QuizModel.countDocuments();
+    const totalTasks = await TaskModel.countDocuments();
+    const totalEvents = await EngagementEventModel.countDocuments();
     
-    return { totalStudents, totalFaculty, totalCourses };
+    return { 
+      totalUsers, 
+      totalCourses, 
+      totalQuizzes, 
+      totalTasks,
+      totalEvents
+    };
   }
 }
 

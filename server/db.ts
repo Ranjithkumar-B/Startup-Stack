@@ -4,10 +4,15 @@ const MONGODB_URI = "mongodb+srv://ranjith81518_db_user:aehobjNTWGsByNMb@cluster
 
 export async function connectDB() {
   try {
-    await mongoose.connect(MONGODB_URI, { serverSelectionTimeoutMS: 5000, family: 4 });
+    console.log("Attempting to connect to MongoDB...");
+    await mongoose.connect(MONGODB_URI, { 
+      serverSelectionTimeoutMS: 30000,
+      connectTimeoutMS: 30000 
+    });
     console.log("MongoDB connected successfully");
   } catch (error) {
     console.error("MongoDB connection error:", error);
-    process.exit(1);
+    // Don't exit immediately, let the error handler catch it if it happens later
+    // process.exit(1);
   }
 }

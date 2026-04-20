@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
-import { BookOpen, ArrowRight, Loader2, Users, GraduationCap } from "lucide-react";
+import { BookOpen, ArrowRight, Loader2, Users, GraduationCap, Server } from "lucide-react";
 
 export default function Login() {
   const [_, setLocation] = useLocation();
   const { login, isLoggingIn } = useAuth();
-  const [userType, setUserType] = useState<"student" | "faculty" | null>(null);
+  const [userType, setUserType] = useState<"student" | "faculty" | "admin" | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -75,6 +75,22 @@ export default function Login() {
                 Manage your curriculums, monitor analytics, and evaluate student success
               </p>
             </button>
+
+            {/* Admin Login */}
+            <button
+              onClick={() => setUserType("admin")}
+              className="p-10 md:p-12 bg-white/[0.03] backdrop-blur-2xl rounded-[2.5rem] border border-white/[0.08] hover:border-purple-500/50 hover:bg-white/[0.05] hover:shadow-[0_0_80px_-20px_rgba(168,85,247,0.3)] transition-all duration-500 active:scale-[0.98] group cursor-pointer flex flex-col items-center text-center relative overflow-hidden animate-in fade-in slide-in-from-bottom-12 delay-450 md:col-span-2 max-w-lg mx-auto w-full"
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+              
+              <div className="w-20 h-20 rounded-[1.5rem] bg-purple-500/10 flex items-center justify-center mb-6 group-hover:bg-purple-500/20 group-hover:scale-110 transition-all duration-500 relative z-10 ring-1 ring-white/10 group-hover:ring-purple-500/50">
+                <Server className="w-10 h-10 text-purple-400 group-hover:text-white transition-colors duration-300" />
+              </div>
+              <h2 className="text-2xl font-display font-bold text-white mb-3 relative z-10">Administrator</h2>
+              <p className="text-white/50 text-sm leading-relaxed relative z-10 max-w-xs">
+                Platform-wide overseer for system health, global analytics, and user roles
+              </p>
+            </button>
           </div>
         </div>
       </div>
@@ -101,14 +117,14 @@ export default function Login() {
               Monitor engagement. <br/>Drive success.
             </h1>
             <p className="text-white/80 text-lg max-w-sm font-light">
-              Sign in to your {userType === 'faculty' ? 'faculty' : 'student'} workspace to continue.
+              Sign in to your {userType === 'faculty' ? 'faculty' : userType === 'admin' ? 'admin' : 'student'} workspace to continue.
             </p>
           </div>
           
           <div className="relative mb-2 flex items-center gap-3 px-4 py-2 bg-white/5 border border-white/10 rounded-2xl w-fit">
             <div className={`w-2 h-2 rounded-full ${userType === 'faculty' ? 'bg-accent animate-pulse' : 'bg-primary animate-pulse'}`} />
             <span className="text-xs font-bold uppercase tracking-widest text-white/70">
-              {userType === 'faculty' ? 'Faculty Mode' : 'Student Mode'}
+              {userType === 'faculty' ? 'Faculty Mode' : userType === 'admin' ? 'Admin Mode' : 'Student Mode'}
             </span>
           </div>
 

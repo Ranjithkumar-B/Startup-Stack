@@ -11,7 +11,7 @@ export default function TakeQuiz({ params }: { params: { courseId: string, quizI
   const courseId = Number(params.courseId);
   const quizId = Number(params.quizId);
   const { user } = useAuth();
-  const [_, setLocation] = useLocation();
+  const [, setLocation] = useLocation();
   const { data: questions, isLoading } = useQuizQuestions(quizId);
   const { mutateAsync: createQuestion, isPending: isAddingQuestion } = useCreateQuestion();
   const { data: allCourses } = useCourses();
@@ -52,7 +52,7 @@ export default function TakeQuiz({ params }: { params: { courseId: string, quizI
     
     const course = allCourses?.find((c: any) => c.id === courseId);
     if (course?.facultyId) {
-       addNotification("Student Completed Quiz", `${user?.name || "A student"} completed the quiz for "${course.title}".`, "info", "faculty", course.facultyId);
+       addNotification("Student Completed Quiz", `${user?.name || "A student"} completed the quiz for "${course.title || 'Course'}".`, "info", "faculty", course.facultyId);
     }
     
     setLocation(`/courses/${courseId}/quizzes`);

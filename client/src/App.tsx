@@ -112,9 +112,7 @@ function Router() {
       <Route path="/students">
         {() => <ProtectedRoute component={StudentList} allowedRoles={["faculty", "admin"]} />}
       </Route>
-      <Route path="/activity">
-        {() => <ProtectedRoute component={SystemActivity} allowedRoles={["admin"]} />}
-      </Route>
+
 
       <Route component={NotFound} />
     </Switch>

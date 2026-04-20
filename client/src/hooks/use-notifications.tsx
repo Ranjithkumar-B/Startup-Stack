@@ -64,7 +64,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   const addNotification = (title: string, message: string, type: Notification["type"] = "info", intendedRole: Notification["intendedRole"] = "all", intendedUserId?: Notification["intendedUserId"]) => {
     const newNotification: Notification = {
-      id: Math.random().toString(36).substr(2, 9),
+      id: Math.random().toString(36).substring(2, 11),
       title,
       message,
       type,

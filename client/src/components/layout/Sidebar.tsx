@@ -31,9 +31,6 @@ export function Sidebar() {
     ...(user.role === "faculty" || user.role === "admin" 
       ? [{ href: "/students", label: "Students", icon: Users }] 
       : []),
-    ...(user.role === "admin" 
-      ? [{ href: "/activity", label: "System Activity", icon: Activity }] 
-      : []),
   ];
 
   return (

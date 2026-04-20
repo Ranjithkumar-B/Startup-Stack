@@ -63,6 +63,7 @@ function authMiddleware(req: Request, res: Response, next: NextFunction) {
     const payload = jwt.verify(token, JWT_SECRET);
     req.user = payload;
   } catch (err) {
+    console.error("JWT Verification failed:", err);
   }
   next();
 }
@@ -102,6 +103,27 @@ export async function registerRoutes(
   app.post(api.auth.register.path, async (req, res) => {
     try {
       const input = api.auth.register.input.parse(req.body);
+
+      // --- Admin Registration Security ---
+      if (input.role === 'admin') {
+        // 1. Check for secret key
+        const adminSecret = req.body.adminSecret;
+        const EXPECTED_SECRET = process.env.ADMIN_SECRET || "SUPER_SECURE_ADMIN_2024";
+        
+        if (adminSecret !== EXPECTED_SECRET) {
+          return res.status(403).json({ 
+            message: "Administrative registration requires a valid secret key.", 
+            field: "adminSecret" 
+          });
+        }
+
+        // 2. Limit to exactly 2 admin accounts
+        const adminCount = await UserModel.countDocuments({ role: "admin" });
+        if (adminCount >= 2) {
+          return res.status(403).json({ message: "Platform administrator limit (2) has been reached." });
+        }
+      }
+
       const existingUser = await storage.getUserByEmail(input.email);
       if (existingUser) {
         return res.status(400).json({ message: "Email already in use", field: "email" });
@@ -221,6 +243,7 @@ export async function registerRoutes(
       
       res.status(201).json(course);
     } catch (err) {
+      console.error("Course creation failed:", err);
       res.status(400).json({ message: "Invalid input" });
     }
   });
@@ -243,6 +266,7 @@ export async function registerRoutes(
       const course = await storage.updateCourse(courseId, input);
       res.json(course);
     } catch (err) {
+      console.error("Course update failed:", err);
       res.status(400).json({ message: "Invalid input or course not found" });
     }
   });
@@ -288,6 +312,7 @@ export async function registerRoutes(
       
       res.json(quizzes.map(q => ({ ...q, isSubmitted: false })));
     } catch (err) {
+      console.error("Fetch Quizzes Error:", err);
       res.status(500).json({ message: "Failed to load quizzes" });
     }
   });
@@ -302,6 +327,7 @@ export async function registerRoutes(
       const quiz = await storage.createQuiz({ courseId, title, description });
       res.status(201).json(quiz);
     } catch (err) {
+      console.error("Quiz creation failed:", err);
       res.status(400).json({ message: "Invalid input" });
     }
   });
@@ -314,6 +340,7 @@ export async function registerRoutes(
       await storage.deleteQuiz(Number(req.params.id));
       res.json({ message: "Quiz deleted successfully" });
     } catch (err) {
+      console.error("Delete Quiz Error:", err);
       res.status(500).json({ message: "Failed to delete quiz" });
     }
   });
@@ -333,6 +360,7 @@ export async function registerRoutes(
       }
       res.json(questions);
     } catch (err) {
+      console.error("Fetch Questions Error:", err);
       res.status(500).json({ message: "Failed to load questions" });
     }
   });
@@ -352,6 +380,7 @@ export async function registerRoutes(
       });
       res.status(201).json(question);
     } catch (err) {
+      console.error("Question creation failed:", err);
       res.status(400).json({ message: "Invalid input" });
     }
   });
@@ -395,6 +424,7 @@ export async function registerRoutes(
       
       res.status(201).json(submission);
     } catch (err) {
+      console.error("Quiz Submit Error:", err);
       res.status(400).json({ message: "Invalid request" });
     }
   });
@@ -617,7 +647,130 @@ export async function registerRoutes(
       const students = await storage.getAllStudents();
       res.json(students);
     } catch (err) {
+      console.error("Failed to load students:", err);
       res.status(500).json({ message: "Failed to load students" });
+    }
+  });
+
+  // --- Admin User Control ---
+  app.get('/api/admin/users', requireAuth, async (req, res) => {
+    if (req.user.role !== 'admin') return res.status(403).json({ message: "Admin access required" });
+    try {
+      const users = await UserModel.find().sort({ createdAt: -1 }).lean();
+      res.json(users.map((u: any) => {
+        const { passwordHash, ...safe } = u;
+        return { ...safe, id: u._id };
+      }));
+    } catch (err) {
+      console.error("Fetch Users Error:", err);
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  app.patch('/api/admin/users/:id/role', requireAuth, async (req, res) => {
+    if (req.user.role !== 'admin') return res.status(403).json({ message: "Admin access required" });
+    try {
+      const { role } = req.body;
+      if (!['student', 'faculty', 'admin'].includes(role)) {
+        return res.status(400).json({ message: "Invalid role" });
+      }
+
+      const targetId = Number(req.params.id);
+
+      if (role === 'admin') {
+        const adminCount = await UserModel.countDocuments({ role: "admin" });
+        if (adminCount >= 2) {
+          return res.status(400).json({ message: "Cannot have more than 2 administrators." });
+        }
+      }
+
+      const updated = await UserModel.findByIdAndUpdate(targetId, { role }, { new: true }).lean();
+      if (!updated) return res.status(404).json({ message: "User not found" });
+      res.json(updated);
+    } catch (err) {
+      console.error("Update Role Error:", err);
+      res.status(500).json({ message: "Failed to update user role" });
+    }
+  });
+
+  app.delete('/api/admin/users/:id', requireAuth, async (req, res) => {
+    if (req.user.role !== 'admin') return res.status(403).json({ message: "Admin access required" });
+    const targetId = Number(req.params.id);
+    
+    // Prevent self-deletion
+    if (targetId === req.user.id) {
+       return res.status(400).json({ message: "Administrators cannot delete their own accounts." });
+    }
+
+    try {
+      await UserModel.findByIdAndDelete(targetId);
+      // Clean up linked data
+      await EnrollmentModel.deleteMany({ studentId: targetId });
+      await FacultyStudentModel.deleteMany({ $or: [{ facultyId: targetId }, { studentId: targetId }] });
+      await EngagementEventModel.deleteMany({ studentId: targetId });
+      await TaskSubmissionModel.deleteMany({ studentId: targetId });
+      await QuizSubmissionModel.deleteMany({ studentId: targetId });
+      
+      res.json({ message: "User and associated data deleted successfully." });
+    } catch (err) {
+      console.error("Delete User Error:", err);
+      res.status(500).json({ message: "Failed to delete user" });
+    }
+  });
+
+  app.delete('/api/admin/courses/:id', requireAuth, async (req, res) => {
+    if (req.user.role !== 'admin') return res.status(403).json({ message: "Admin access required" });
+    const courseId = Number(req.params.id);
+    try {
+      await storage.deleteCourse(courseId);
+      await QuizModel.deleteMany({ courseId });
+      await TaskModel.deleteMany({ courseId });
+      res.json({ message: "Course and linked assessments deleted." });
+    } catch (err) {
+      console.error("Delete Course Error:", err);
+      res.status(500).json({ message: "Failed to delete course" });
+    }
+  });
+
+  app.delete('/api/admin/quizzes/:id', requireAuth, async (req, res) => {
+    if (req.user.role !== 'admin') return res.status(403).json({ message: "Admin access required" });
+    try {
+      await QuizModel.findByIdAndDelete(Number(req.params.id));
+      await QuestionModel.deleteMany({ quizId: Number(req.params.id) });
+      res.json({ message: "Quiz deleted." });
+    } catch (err) {
+      res.status(500).json({ message: "Failed" });
+    }
+  });
+
+  app.delete('/api/admin/tasks/:id', requireAuth, async (req, res) => {
+    if (req.user.role !== 'admin') return res.status(403).json({ message: "Admin access required" });
+    try {
+      await TaskModel.findByIdAndDelete(Number(req.params.id));
+      await TaskSubmissionModel.deleteMany({ taskId: Number(req.params.id) });
+      res.json({ message: "Task deleted." });
+    } catch (err) {
+      res.status(500).json({ message: "Failed" });
+    }
+  });
+
+  app.get('/api/admin/quizzes', requireAuth, async (req, res) => {
+    if (req.user.role !== 'admin') return res.status(403).json({ message: "Admin only" });
+    try {
+      const quizzes = await QuizModel.find().lean();
+      res.json(quizzes.map((q: any) => ({ ...q, id: q._id })));
+    } catch (err) {
+      res.status(500).json({ message: "Failed to fetch quizzes" });
+    }
+  });
+
+  app.get('/api/admin/tasks', requireAuth, async (req, res) => {
+    if (req.user.role !== 'admin') return res.status(403).json({ message: "Admin only" });
+    try {
+      const tasks = await TaskModel.find().lean();
+      res.json(tasks.map((t: any) => ({ ...t, id: t._id })));
+    } catch (err) {
+      res.status(500).json({ message: "Failed to fetch tasks" });
     }
   });
 
@@ -688,6 +841,7 @@ export async function registerRoutes(
         res.json([]);
       }
     } catch (err) {
+      console.error("Fetch Tasks Error:", err);
       res.status(500).json({ message: "Failed to fetch tasks" });
     }
   });
@@ -720,6 +874,7 @@ export async function registerRoutes(
         };
       }));
     } catch (err) {
+      console.error("Fetch Submissions Error:", err);
       res.status(500).json({ message: "Failed to fetch submissions" });
     }
   });
