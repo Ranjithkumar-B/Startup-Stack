@@ -37,14 +37,23 @@ export default function StudentsPage() {
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const q = params.get("q");
-    if (q) {
-      setSearchQuery(q);
-    } else {
-      setSearchQuery("");
-    }
-  }, [location, window.location.search]);
+    const handleLocationChange = () => {
+      const params = new URLSearchParams(window.location.search);
+      const q = params.get("q");
+      setSearchQuery(q || "");
+    };
+
+    window.addEventListener("locationchange", handleLocationChange);
+    window.addEventListener("popstate", handleLocationChange);
+    
+    // Initial check
+    handleLocationChange();
+
+    return () => {
+      window.removeEventListener("locationchange", handleLocationChange);
+      window.removeEventListener("popstate", handleLocationChange);
+    };
+  }, [location]);
 
   const { data: details, isLoading: isLoadingDetails } = useQuery<StudentDetails>({
     queryKey: ["/api/engagement/student", selectedStudentId],

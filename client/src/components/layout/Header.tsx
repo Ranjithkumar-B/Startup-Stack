@@ -20,6 +20,8 @@ export function Header() {
       // If on admin or student page, search students, otherwise search courses
       const targetPath = isStudentPage ? "/students" : "/courses";
       setLocation(`${targetPath}?q=${encodeURIComponent(searchQuery)}`);
+      // Force a re-render in components that don't react to query-only changes
+      window.dispatchEvent(new Event("locationchange"));
     }
   };
 

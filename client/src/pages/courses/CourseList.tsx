@@ -35,12 +35,23 @@ export default function CourseList() {
   const [location] = useLocation();
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const q = params.get("q");
-    if (q) {
-      setLocalSearchQuery(q);
-    }
-  }, [location, window.location.search]);
+    const handleLocationChange = () => {
+      const params = new URLSearchParams(window.location.search);
+      const q = params.get("q");
+      setLocalSearchQuery(q || "");
+    };
+
+    window.addEventListener("locationchange", handleLocationChange);
+    window.addEventListener("popstate", handleLocationChange);
+    
+    // Initial check
+    handleLocationChange();
+
+    return () => {
+      window.removeEventListener("locationchange", handleLocationChange);
+      window.removeEventListener("popstate", handleLocationChange);
+    };
+  }, [location]);
 
   const handleDelete = async (e: React.MouseEvent, courseId: number) => {
     e.stopPropagation();
