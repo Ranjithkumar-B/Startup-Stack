@@ -402,6 +402,13 @@ export async function registerRoutes(
     const quizId = Number(req.params.id);
     const { answers } = req.body; 
     try {
+      // Prevent multiple attempts: check if student has already submitted this quiz
+      const submissions = await storage.getQuizSubmissions(req.user.id);
+      const alreadySubmitted = submissions.some(s => s.quizId === quizId);
+      if (alreadySubmitted) {
+        return res.status(400).json({ message: "You have already completed this quiz. Only one attempt is allowed." });
+      }
+
       const quiz = await storage.getQuiz(quizId);
       if (!quiz) return res.status(404).json({ message: "Quiz not found" });
 

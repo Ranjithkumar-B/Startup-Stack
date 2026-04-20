@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { useQuizQuestions, useCreateQuestion, useSubmitQuiz, useQuiz } from "@/hooks/use-quizzes";
+import { useQuizQuestions, useCreateQuestion, useSubmitQuiz, useQuiz, useQuizzes } from "@/hooks/use-quizzes";
 import { useCourses } from "@/hooks/use-courses";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useLocation } from "wouter";
@@ -18,6 +18,7 @@ export default function TakeQuiz({ params }: { params: { courseId: string, quizI
   const { addNotification } = useNotifications();
   const { mutateAsync: submitQuiz, isPending: isSubmitting } = useSubmitQuiz();
   const { data: quiz } = useQuiz(quizId);
+  const { data: quizzes } = useQuizzes(courseId);
   const isFaculty = user?.role === "faculty" || user?.role === "admin";
 
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
@@ -28,6 +29,13 @@ export default function TakeQuiz({ params }: { params: { courseId: string, quizI
   const [qText, setQText] = useState("");
   const [opts, setOpts] = useState(["", "", "", ""]);
   const [correctIdx, setCorrectIdx] = useState(0);
+
+  useEffect(() => {
+    const currentQuiz = quizzes?.find((q: any) => q.id === quizId);
+    if (currentQuiz?.isSubmitted && !isFaculty) {
+      setLocation(`/courses/${courseId}/quizzes`);
+    }
+  }, [quizzes, isFaculty, quizId, courseId]);
 
   useEffect(() => {
     if (quiz?.timeLimit && quiz.timeLimit > 0 && !isFaculty) {
